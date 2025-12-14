@@ -5,6 +5,7 @@ namespace M18BatteryInfo
     public partial class frmMain : Form
     {
         private SerialPort? _serialPort;
+        private bool _hasAppendedLog;
 
         public frmMain()
         {
@@ -194,10 +195,14 @@ namespace M18BatteryInfo
 
         private void AppendLog(string message)
         {
-            var formattedMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
-            var entry = $"====== OUTPUT ======{Environment.NewLine}{formattedMessage}{Environment.NewLine}";
-            rtbOutput.AppendText(entry);
+            var timestampedMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
+            var prefix = _hasAppendedLog ? $"{Environment.NewLine}{Environment.NewLine}" : string.Empty;
+
+            rtbOutput.AppendText($"{prefix}{timestampedMessage}");
+            rtbOutput.SelectionStart = rtbOutput.TextLength;
             rtbOutput.ScrollToCaret();
+
+            _hasAppendedLog = true;
         }
 
         private void LogError(string context, Exception exception)

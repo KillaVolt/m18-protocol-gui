@@ -117,6 +117,7 @@
             lblAboutTitle = new Label();
             toolTipSimpleTab = new ToolTip(components);
             rtbDebugOutput = new RichTextBox();
+            btnTestFT232 = new Button();
             tabControlM18Main.SuspendLayout();
             tabSimple.SuspendLayout();
             grpOutput.SuspendLayout();
@@ -145,6 +146,7 @@
             // 
             // tabSimple
             // 
+            tabSimple.Controls.Add(btnTestFT232);
             tabSimple.Controls.Add(grpOutput);
             tabSimple.Controls.Add(btnDisconnect);
             tabSimple.Controls.Add(btnConnect);
@@ -237,7 +239,7 @@
             // 
             // btnDisconnect
             // 
-            btnDisconnect.Location = new Point(344, 48);
+            btnDisconnect.Location = new Point(464, 48);
             btnDisconnect.Name = "btnDisconnect";
             btnDisconnect.Size = new Size(112, 34);
             btnDisconnect.TabIndex = 5;
@@ -972,17 +974,26 @@
             // 
             // rtbDebugOutput
             // 
-            rtbDebugOutput.Location = new Point(24, 544);
+            rtbDebugOutput.Location = new Point(8, 520);
             rtbDebugOutput.Name = "rtbDebugOutput";
-            rtbDebugOutput.Size = new Size(880, 168);
+            rtbDebugOutput.Size = new Size(904, 168);
             rtbDebugOutput.TabIndex = 1;
             rtbDebugOutput.Text = "";
+            // 
+            // btnTestFT232
+            // 
+            btnTestFT232.Location = new Point(342, 48);
+            btnTestFT232.Name = "btnTestFT232";
+            btnTestFT232.Size = new Size(112, 34);
+            btnTestFT232.TabIndex = 7;
+            btnTestFT232.Text = "Test Device";
+            btnTestFT232.UseVisualStyleBackColor = true;
             // 
             // frmMain
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(928, 730);
+            ClientSize = new Size(928, 715);
             Controls.Add(rtbDebugOutput);
             Controls.Add(tabControlM18Main);
             Icon = (Icon)resources.GetObject("$this.Icon");
@@ -1103,5 +1114,6 @@
         private LinkLabel linkLabelKillaVolt;
         private Label lblKillaVoltAbout;
         private RichTextBox rtbDebugOutput;
+        private Button btnTestFT232;
     }
 }

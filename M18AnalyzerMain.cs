@@ -86,7 +86,7 @@ namespace M18BatteryInfo
 
         private void RefreshSerialPorts()
         {
-            AppendLog("Refreshing serial port list...");
+            AppendLogBoth("Refreshing serial port list...");
 
             try
             {
@@ -96,12 +96,12 @@ namespace M18BatteryInfo
                 foreach (var port in ports)
                 {
                     cmbBxSerialPort.Items.Add(port);
-                    AppendLog($"Found port {port.DisplayName}{(port.IsLikelyFtdi ? " (FTDI detected)" : string.Empty)}");
+                    AppendLogBoth($"Found port {port.DisplayName}{(port.IsLikelyFtdi ? " (FTDI detected)" : string.Empty)}");
                 }
 
                 if (ports.Count == 0)
                 {
-                    AppendLog("No serial ports detected.");
+                    AppendLogBoth("No serial ports detected.");
                 }
                 else
                 {
@@ -128,22 +128,23 @@ namespace M18BatteryInfo
             {
                 if (string.Equals(_protocol.PortName, selectedPort.PortName, StringComparison.OrdinalIgnoreCase))
                 {
-                    AppendLog($"Port {selectedPort.PortName} is already open. Ignoring duplicate connect request.");
+                    AppendLogBoth($"Port {selectedPort.PortName} is already open. Ignoring duplicate connect request.");
                     MessageBox.Show($"{selectedPort.PortName} is already open.", "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
-                AppendLog($"A different port ({_protocol.PortName}) is currently open. Closing it before opening {selectedPort.PortName}...");
+                AppendLogBoth($"A different port ({_protocol.PortName}) is currently open. Closing it before opening {selectedPort.PortName}...");
                 await DisconnectAsync();
             }
 
-            AppendLog($"Attempting to open {selectedPort.DisplayName} with settings: 4800 baud, 8 data bits, parity None, stop bits One, handshake None.");
+            AppendLogBoth($"Attempting to open {selectedPort.DisplayName} with settings: 4800 baud, 8 data bits, parity None, stop bits Two, handshake None.");
+            AppendDebugLog("Serial connection will set TX low (idle) after open.");
 
             try
             {
-                await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName));
+                await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName, AppendDebugLog));
                 ApplyProtocolLoggingPreferences();
-                AppendLog($"{selectedPort.DisplayName} opened successfully.");
+                AppendLogBoth($"{selectedPort.DisplayName} opened successfully.");
             }
             catch (Exception ex)
             {
@@ -162,17 +163,17 @@ namespace M18BatteryInfo
         {
             if (_protocol == null)
             {
-                AppendLog("Disconnect requested, but no serial port is currently open.");
+                AppendLogBoth("Disconnect requested, but no serial port is currently open.");
                 MessageBox.Show("No serial port is currently open.", "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            AppendLog($"Closing {_protocol.PortName}...");
+            AppendLogBoth($"Closing {_protocol.PortName}...");
 
             try
             {
                 await Task.Run(() => _protocol.Close());
-                AppendLog($"{_protocol.PortName} closed successfully.");
+                AppendLogBoth($"{_protocol.PortName} closed successfully.");
             }
             catch (Exception ex)
             {
@@ -192,8 +193,16 @@ namespace M18BatteryInfo
                 return;
             }
 
-            await Task.Run(() => _protocol!.Idle());
-            AppendLog("TX set to Idle (low). Safe to connect or disconnect battery.");
+            AppendDebugLog("Invoking _protocol.Idle() to drive TX low.");
+            try
+            {
+                await Task.Run(() => _protocol!.Idle());
+                AppendLogBoth("TX set to Idle (low). Safe to connect or disconnect battery.");
+            }
+            catch (Exception ex)
+            {
+                LogError("Failed to set TX to Idle.", ex);
+            }
         }
 
         private async void btnActive_Click(object? sender, EventArgs e)
@@ -204,8 +213,16 @@ namespace M18BatteryInfo
                 return;
             }
 
-            await Task.Run(() => _protocol!.High());
-            AppendLog("TX set to Active (high). Charger simulation enabled.");
+            AppendDebugLog("Invoking _protocol.High() to drive TX high.");
+            try
+            {
+                await Task.Run(() => _protocol!.High());
+                AppendLogBoth("TX set to Active (high). Charger simulation enabled.");
+            }
+            catch (Exception ex)
+            {
+                LogError("Failed to set TX to Active (high).", ex);
+            }
         }
 
         private async void btnHealthReport_Click(object? sender, EventArgs e)
@@ -218,10 +235,14 @@ namespace M18BatteryInfo
 
             try
             {
+                AppendDebugLog("Starting health report collection (mirrors m18.py health()).");
                 var report = await Task.Run(() => _protocol!.HealthReport());
-                AppendLog("=== Health report ===");
-                AppendLog(report);
-                AppendLog("Health report complete.");
+                AppendLogBoth("=== Health report ===");
+                foreach (var line in report.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
+                {
+                    AppendLogBoth(line);
+                }
+                AppendLogBoth("Health report complete.");
             }
             catch (Exception ex)
             {
@@ -239,8 +260,9 @@ namespace M18BatteryInfo
 
             try
             {
+                AppendDebugLog("Sending reset sequence (BREAK/DTR + SYNC).");
                 var success = await Task.Run(() => _protocol!.Reset());
-                AppendLog(success ? "Reset command acknowledged by device." : "Reset command did not receive expected response.");
+                AppendLogBoth(success ? "Reset command acknowledged by device." : "Reset command did not receive expected response.");
             }
             catch (Exception ex)
             {
@@ -253,12 +275,12 @@ namespace M18BatteryInfo
             LogDebugAction("Copying output via btnCopyOutput_Click().");
             if (string.IsNullOrEmpty(rtbOutput.Text))
             {
-                AppendLog("No output to copy.");
+                AppendLogBoth("No output to copy.");
                 return;
             }
 
             Clipboard.SetText(rtbOutput.Text);
-            AppendLog("Output copied to clipboard.");
+            AppendLogBoth("Output copied to clipboard.");
         }
 
         private bool EnsureConnected()
@@ -409,6 +431,13 @@ namespace M18BatteryInfo
             AppendSimpleLog(FormatLogMessage(message));
         }
 
+        private void AppendLogBoth(string message)
+        {
+            var formatted = FormatLogMessage(message);
+            AppendSimpleLog(formatted);
+            AppendDebugLog(formatted);
+        }
+
         private void AppendSimpleLog(string formattedMessage)
         {
             if (rtbOutput.InvokeRequired)
@@ -449,12 +478,13 @@ namespace M18BatteryInfo
             var formattedMessage = FormatLogMessage(message);
             AppendSimpleLog(formattedMessage);
             AppendAdvancedLog(formattedMessage);
+            AppendDebugLog(formattedMessage);
         }
 
         private void LogError(string context, Exception exception)
         {
             var fullMessage = $"{context} Error details: {exception}";
-            AppendLog(fullMessage);
+            AppendLogBoth(fullMessage);
             MessageBox.Show(fullMessage, "Serial Port Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
@@ -495,14 +525,20 @@ namespace M18BatteryInfo
 
         private void LogDebugAction(string message)
         {
+            AppendDebugLog(message);
+        }
+
+        private void AppendDebugLog(string message)
+        {
             if (rtbDebugOutput.InvokeRequired)
             {
-                rtbDebugOutput.Invoke(new Action(() => LogDebugAction(message)));
+                rtbDebugOutput.Invoke(new Action(() => AppendDebugLog(message)));
                 return;
             }
 
             var prefix = _hasAppendedDebugLog ? Environment.NewLine : string.Empty;
-            rtbDebugOutput.AppendText($"{prefix}{DateTime.Now:HH:mm:ss} - {message}");
+            var formatted = message.Contains("- ") ? message : FormatLogMessage(message);
+            rtbDebugOutput.AppendText($"{prefix}{formatted}");
             rtbDebugOutput.SelectionStart = rtbDebugOutput.TextLength;
             rtbDebugOutput.ScrollToCaret();
             _hasAppendedDebugLog = true;

@@ -116,6 +116,7 @@
             lblMartin = new Label();
             lblAboutTitle = new Label();
             toolTipSimpleTab = new ToolTip(components);
+            rtbDebugOutput = new RichTextBox();
             tabControlM18Main.SuspendLayout();
             tabSimple.SuspendLayout();
             grpOutput.SuspendLayout();
@@ -505,7 +506,7 @@
             btnSaveTxRxState.UseVisualStyleBackColor = true;
             // 
             // chkboxRxLog
-            //
+            // 
             chkboxRxLog.AutoSize = true;
             chkboxRxLog.Checked = true;
             chkboxRxLog.CheckState = CheckState.Checked;
@@ -515,9 +516,9 @@
             chkboxRxLog.TabIndex = 8;
             chkboxRxLog.Text = "Enable Rx Log";
             chkboxRxLog.UseVisualStyleBackColor = true;
-            //
+            // 
             // chkbxTXLog
-            //
+            // 
             chkbxTXLog.AutoSize = true;
             chkbxTXLog.Checked = true;
             chkbxTXLog.CheckState = CheckState.Checked;
@@ -969,11 +970,20 @@
             lblAboutTitle.Text = "         Pack Analyzer GUI";
             lblAboutTitle.TextAlign = ContentAlignment.TopCenter;
             // 
+            // rtbDebugOutput
+            // 
+            rtbDebugOutput.Location = new Point(24, 544);
+            rtbDebugOutput.Name = "rtbDebugOutput";
+            rtbDebugOutput.Size = new Size(880, 168);
+            rtbDebugOutput.TabIndex = 1;
+            rtbDebugOutput.Text = "";
+            // 
             // frmMain
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(928, 528);
+            ClientSize = new Size(928, 730);
+            Controls.Add(rtbDebugOutput);
             Controls.Add(tabControlM18Main);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "frmMain";
@@ -1092,5 +1102,6 @@
         private Label lblMartin;
         private LinkLabel linkLabelKillaVolt;
         private Label lblKillaVoltAbout;
+        private RichTextBox rtbDebugOutput;
     }
 }

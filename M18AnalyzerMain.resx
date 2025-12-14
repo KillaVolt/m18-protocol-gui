@@ -243,6 +243,9 @@
         IvlqfhcvcE8Dq6a5WCDpEBoSyvVonnSB/R8o7cRn6N8BkQAAAABJRU5ErkJggg==
 </value>
   </data>
+  <metadata name="toolTipSimpleTab.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+    <value>9, 21</value>
+  </metadata>
   <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         AAABAAkAEBAAAAEAIABoBAAAlgAAABgYAAABACAAiAkAAP4EAAAgIAAAAQAgAKgQAACGDgAAMDAAAAEA

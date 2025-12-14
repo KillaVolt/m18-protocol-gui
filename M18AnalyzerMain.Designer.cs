@@ -617,6 +617,7 @@
             grpBxSimCustomProfile.TabIndex = 16;
             grpBxSimCustomProfile.TabStop = false;
             grpBxSimCustomProfile.Text = "Custom Charger Profile";
+            grpBxSimCustomProfile.Enter += grpBxSimCustomProfile_Enter;
             // 
             // lblCutoffRaw
             // 

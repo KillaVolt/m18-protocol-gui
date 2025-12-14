@@ -36,5 +36,10 @@ namespace M18BatteryInfo
         {
 
         }
+
+        private void grpBxSimCustomProfile_Enter(object sender, EventArgs e)
+        {
+
+        }
     }
 }

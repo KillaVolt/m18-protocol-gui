@@ -43,7 +43,7 @@
             btnConnect = new Button();
             btnRefresh = new Button();
             lblSerialPort = new Label();
-            comboBox1 = new ComboBox();
+            cmbBxSerialPort = new ComboBox();
             tabAdvanced = new TabPage();
             btnRestoreTxRxState = new Button();
             grpTryCmd = new GroupBox();
@@ -77,31 +77,45 @@
             btnReadAllRegisters = new Button();
             rtbAdvOutput = new RichTextBox();
             tabPage3 = new TabPage();
-            comboBox4 = new ComboBox();
-            comboBox3 = new ComboBox();
-            cmbDuration = new ComboBox();
-            tabDiagnostics = new TabPage();
-            label6 = new Label();
-            label5 = new Label();
-            label4 = new Label();
-            label3 = new Label();
-            label2 = new Label();
-            label1 = new Label();
-            richTextBox1 = new RichTextBox();
-            textBox6 = new TextBox();
-            textBox5 = new TextBox();
-            textBox4 = new TextBox();
-            textBox3 = new TextBox();
-            textBox2 = new TextBox();
-            textBox1 = new TextBox();
-            btnSubmitForm = new Button();
-            tabAbout = new TabPage();
-            toolTipSimpleTab = new ToolTip(components);
-            lblDuration = new Label();
-            lblBaudRate = new Label();
-            lblSimProfile = new Label();
-            btnStartSim = new Button();
+            grpBxSimCustomProfile = new GroupBox();
+            lblCutoffRaw = new Label();
+            lblMaxCurrAmps = new Label();
+            txtMaxCurrAmps = new TextBox();
+            lblMaxCurrRaw = new Label();
+            txtCutoffAmps = new TextBox();
+            lblCutoffAmps = new Label();
+            txtMaxCurrRaw = new TextBox();
+            txtCutoffRaw = new TextBox();
+            txtSimDuration = new TextBox();
             btnStopSim = new Button();
+            btnStartSim = new Button();
+            lblSimProfile = new Label();
+            lblBaudRate = new Label();
+            lblDuration = new Label();
+            cmbBxChgProfile = new ComboBox();
+            cmbBxBaudRate = new ComboBox();
+            tabDiagnostics = new TabPage();
+            btnClearDiagForm = new Button();
+            grpboxDiagOutput = new GroupBox();
+            rtbSubmitDiagReadOnly = new RichTextBox();
+            lblType = new Label();
+            lblStickerInfo = new Label();
+            lblToolSerialNum = new Label();
+            lblSubmitDiagDate = new Label();
+            lblOneKeyID = new Label();
+            txtSubmitDiagDate = new TextBox();
+            txtSubmitDiagSerial = new TextBox();
+            txtSubmitDiagSticker = new TextBox();
+            txtSubmitDiagType = new TextBox();
+            txtOneKeyID = new TextBox();
+            btnSubmitDiagForm = new Button();
+            tabAbout = new TabPage();
+            lblAboutTitle = new Label();
+            toolTipSimpleTab = new ToolTip(components);
+            lblMartin = new Label();
+            linkLabel1 = new LinkLabel();
+            linkLabel2 = new LinkLabel();
+            label1 = new Label();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             grpOutput.SuspendLayout();
@@ -109,7 +123,10 @@
             grpTryCmd.SuspendLayout();
             grpbxDebugCmd.SuspendLayout();
             tabPage3.SuspendLayout();
+            grpBxSimCustomProfile.SuspendLayout();
             tabDiagnostics.SuspendLayout();
+            grpboxDiagOutput.SuspendLayout();
+            tabAbout.SuspendLayout();
             SuspendLayout();
             // 
             // tabControl1
@@ -122,7 +139,7 @@
             tabControl1.Location = new Point(8, 8);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(908, 484);
+            tabControl1.Size = new Size(908, 512);
             tabControl1.TabIndex = 0;
             // 
             // tabPage1
@@ -132,11 +149,11 @@
             tabPage1.Controls.Add(btnConnect);
             tabPage1.Controls.Add(btnRefresh);
             tabPage1.Controls.Add(lblSerialPort);
-            tabPage1.Controls.Add(comboBox1);
+            tabPage1.Controls.Add(cmbBxSerialPort);
             tabPage1.Location = new Point(4, 34);
             tabPage1.Name = "tabPage1";
             tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(900, 446);
+            tabPage1.Size = new Size(900, 474);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "Simple";
             tabPage1.UseVisualStyleBackColor = true;
@@ -252,13 +269,13 @@
             lblSerialPort.TabIndex = 2;
             lblSerialPort.Text = "Serial Port:";
             // 
-            // comboBox1
+            // cmbBxSerialPort
             // 
-            comboBox1.FormattingEnabled = true;
-            comboBox1.Location = new Point(107, 11);
-            comboBox1.Name = "comboBox1";
-            comboBox1.Size = new Size(781, 33);
-            comboBox1.TabIndex = 1;
+            cmbBxSerialPort.FormattingEnabled = true;
+            cmbBxSerialPort.Location = new Point(107, 11);
+            cmbBxSerialPort.Name = "cmbBxSerialPort";
+            cmbBxSerialPort.Size = new Size(781, 33);
+            cmbBxSerialPort.TabIndex = 1;
             // 
             // tabAdvanced
             // 
@@ -280,14 +297,14 @@
             tabAdvanced.Location = new Point(4, 34);
             tabAdvanced.Name = "tabAdvanced";
             tabAdvanced.Padding = new Padding(3);
-            tabAdvanced.Size = new Size(900, 446);
+            tabAdvanced.Size = new Size(900, 474);
             tabAdvanced.TabIndex = 1;
             tabAdvanced.Text = "Advanced";
             tabAdvanced.UseVisualStyleBackColor = true;
             // 
             // btnRestoreTxRxState
             // 
-            btnRestoreTxRxState.Location = new Point(8, 232);
+            btnRestoreTxRxState.Location = new Point(8, 248);
             btnRestoreTxRxState.Name = "btnRestoreTxRxState";
             btnRestoreTxRxState.Size = new Size(208, 34);
             btnRestoreTxRxState.TabIndex = 15;
@@ -416,7 +433,7 @@
             // lblResponseLength
             // 
             lblResponseLength.AutoSize = true;
-            lblResponseLength.Location = new Point(8, 152);
+            lblResponseLength.Location = new Point(8, 144);
             lblResponseLength.Name = "lblResponseLength";
             lblResponseLength.Size = new Size(147, 25);
             lblResponseLength.TabIndex = 11;
@@ -459,7 +476,7 @@
             // 
             // btnFullBrute
             // 
-            btnFullBrute.Location = new Point(8, 320);
+            btnFullBrute.Location = new Point(8, 352);
             btnFullBrute.Name = "btnFullBrute";
             btnFullBrute.Size = new Size(208, 34);
             btnFullBrute.TabIndex = 12;
@@ -468,7 +485,7 @@
             // 
             // btnBruteAddr
             // 
-            btnBruteAddr.Location = new Point(8, 280);
+            btnBruteAddr.Location = new Point(8, 312);
             btnBruteAddr.Name = "btnBruteAddr";
             btnBruteAddr.Size = new Size(208, 34);
             btnBruteAddr.TabIndex = 11;
@@ -477,7 +494,7 @@
             // 
             // btnSaveTxRxState
             // 
-            btnSaveTxRxState.Location = new Point(8, 192);
+            btnSaveTxRxState.Location = new Point(8, 208);
             btnSaveTxRxState.Name = "btnSaveTxRxState";
             btnSaveTxRxState.Size = new Size(208, 34);
             btnSaveTxRxState.TabIndex = 10;
@@ -487,7 +504,7 @@
             // chkboxRxLog
             // 
             chkboxRxLog.AutoSize = true;
-            chkboxRxLog.Location = new Point(368, 376);
+            chkboxRxLog.Location = new Point(744, 376);
             chkboxRxLog.Name = "chkboxRxLog";
             chkboxRxLog.Size = new Size(149, 29);
             chkboxRxLog.TabIndex = 8;
@@ -497,7 +514,7 @@
             // chkbxTXLog
             // 
             chkbxTXLog.AutoSize = true;
-            chkbxTXLog.Location = new Point(224, 376);
+            chkbxTXLog.Location = new Point(592, 376);
             chkbxTXLog.Name = "chkbxTXLog";
             chkbxTXLog.Size = new Size(150, 29);
             chkbxTXLog.TabIndex = 7;
@@ -541,7 +558,7 @@
             // 
             // btnReadAllSpreadsheet
             // 
-            btnReadAllSpreadsheet.Location = new Point(8, 48);
+            btnReadAllSpreadsheet.Location = new Point(8, 64);
             btnReadAllSpreadsheet.Name = "btnReadAllSpreadsheet";
             btnReadAllSpreadsheet.Size = new Size(208, 34);
             btnReadAllSpreadsheet.TabIndex = 2;
@@ -550,7 +567,7 @@
             // 
             // btnReadAllRegisters
             // 
-            btnReadAllRegisters.Location = new Point(8, 8);
+            btnReadAllRegisters.Location = new Point(8, 24);
             btnReadAllRegisters.Name = "btnReadAllRegisters";
             btnReadAllRegisters.Size = new Size(208, 34);
             btnReadAllRegisters.TabIndex = 1;
@@ -567,210 +584,128 @@
             // 
             // tabPage3
             // 
+            tabPage3.Controls.Add(grpBxSimCustomProfile);
+            tabPage3.Controls.Add(txtSimDuration);
             tabPage3.Controls.Add(btnStopSim);
             tabPage3.Controls.Add(btnStartSim);
             tabPage3.Controls.Add(lblSimProfile);
             tabPage3.Controls.Add(lblBaudRate);
             tabPage3.Controls.Add(lblDuration);
-            tabPage3.Controls.Add(comboBox4);
-            tabPage3.Controls.Add(comboBox3);
-            tabPage3.Controls.Add(cmbDuration);
+            tabPage3.Controls.Add(cmbBxChgProfile);
+            tabPage3.Controls.Add(cmbBxBaudRate);
             tabPage3.Location = new Point(4, 34);
             tabPage3.Name = "tabPage3";
             tabPage3.Padding = new Padding(3);
-            tabPage3.Size = new Size(900, 446);
+            tabPage3.Size = new Size(900, 474);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "Simulation";
             tabPage3.UseVisualStyleBackColor = true;
             // 
-            // comboBox4
+            // grpBxSimCustomProfile
             // 
-            comboBox4.FormattingEnabled = true;
-            comboBox4.Location = new Point(152, 88);
-            comboBox4.Name = "comboBox4";
-            comboBox4.Size = new Size(232, 33);
-            comboBox4.TabIndex = 2;
+            grpBxSimCustomProfile.Controls.Add(lblCutoffRaw);
+            grpBxSimCustomProfile.Controls.Add(lblMaxCurrAmps);
+            grpBxSimCustomProfile.Controls.Add(txtMaxCurrAmps);
+            grpBxSimCustomProfile.Controls.Add(lblMaxCurrRaw);
+            grpBxSimCustomProfile.Controls.Add(txtCutoffAmps);
+            grpBxSimCustomProfile.Controls.Add(lblCutoffAmps);
+            grpBxSimCustomProfile.Controls.Add(txtMaxCurrRaw);
+            grpBxSimCustomProfile.Controls.Add(txtCutoffRaw);
+            grpBxSimCustomProfile.Location = new Point(296, 8);
+            grpBxSimCustomProfile.Name = "grpBxSimCustomProfile";
+            grpBxSimCustomProfile.Size = new Size(336, 200);
+            grpBxSimCustomProfile.TabIndex = 16;
+            grpBxSimCustomProfile.TabStop = false;
+            grpBxSimCustomProfile.Text = "Custom Charger Profile";
             // 
-            // comboBox3
+            // lblCutoffRaw
             // 
-            comboBox3.FormattingEnabled = true;
-            comboBox3.Location = new Point(152, 48);
-            comboBox3.Name = "comboBox3";
-            comboBox3.Size = new Size(232, 33);
-            comboBox3.TabIndex = 1;
+            lblCutoffRaw.AutoSize = true;
+            lblCutoffRaw.Location = new Point(8, 32);
+            lblCutoffRaw.Name = "lblCutoffRaw";
+            lblCutoffRaw.Size = new Size(110, 25);
+            lblCutoffRaw.TabIndex = 12;
+            lblCutoffRaw.Text = "Cutoff (Raw)";
             // 
-            // cmbDuration
+            // lblMaxCurrAmps
             // 
-            cmbDuration.FormattingEnabled = true;
-            cmbDuration.Location = new Point(152, 8);
-            cmbDuration.Name = "cmbDuration";
-            cmbDuration.Size = new Size(232, 33);
-            cmbDuration.TabIndex = 0;
+            lblMaxCurrAmps.AutoSize = true;
+            lblMaxCurrAmps.Location = new Point(8, 152);
+            lblMaxCurrAmps.Name = "lblMaxCurrAmps";
+            lblMaxCurrAmps.Size = new Size(174, 25);
+            lblMaxCurrAmps.TabIndex = 15;
+            lblMaxCurrAmps.Text = "Max. Current (Amps)";
             // 
-            // tabDiagnostics
+            // txtMaxCurrAmps
             // 
-            tabDiagnostics.Controls.Add(label6);
-            tabDiagnostics.Controls.Add(label5);
-            tabDiagnostics.Controls.Add(label4);
-            tabDiagnostics.Controls.Add(label3);
-            tabDiagnostics.Controls.Add(label2);
-            tabDiagnostics.Controls.Add(label1);
-            tabDiagnostics.Controls.Add(richTextBox1);
-            tabDiagnostics.Controls.Add(textBox6);
-            tabDiagnostics.Controls.Add(textBox5);
-            tabDiagnostics.Controls.Add(textBox4);
-            tabDiagnostics.Controls.Add(textBox3);
-            tabDiagnostics.Controls.Add(textBox2);
-            tabDiagnostics.Controls.Add(textBox1);
-            tabDiagnostics.Controls.Add(btnSubmitForm);
-            tabDiagnostics.Location = new Point(4, 34);
-            tabDiagnostics.Name = "tabDiagnostics";
-            tabDiagnostics.Padding = new Padding(3);
-            tabDiagnostics.Size = new Size(900, 446);
-            tabDiagnostics.TabIndex = 3;
-            tabDiagnostics.Text = "Submit Diagnostics";
-            tabDiagnostics.UseVisualStyleBackColor = true;
+            txtMaxCurrAmps.Location = new Point(184, 152);
+            txtMaxCurrAmps.Name = "txtMaxCurrAmps";
+            txtMaxCurrAmps.Size = new Size(134, 31);
+            txtMaxCurrAmps.TabIndex = 8;
             // 
-            // label6
+            // lblMaxCurrRaw
             // 
-            label6.AutoSize = true;
-            label6.Location = new Point(24, 208);
-            label6.Name = "label6";
-            label6.Size = new Size(59, 25);
-            label6.TabIndex = 22;
-            label6.Text = "label6";
+            lblMaxCurrRaw.AutoSize = true;
+            lblMaxCurrRaw.Location = new Point(8, 112);
+            lblMaxCurrRaw.Name = "lblMaxCurrRaw";
+            lblMaxCurrRaw.Size = new Size(160, 25);
+            lblMaxCurrRaw.TabIndex = 14;
+            lblMaxCurrRaw.Text = "Max. Current (Raw)";
             // 
-            // label5
+            // txtCutoffAmps
             // 
-            label5.AutoSize = true;
-            label5.Location = new Point(24, 168);
-            label5.Name = "label5";
-            label5.Size = new Size(59, 25);
-            label5.TabIndex = 21;
-            label5.Text = "label5";
+            txtCutoffAmps.Location = new Point(184, 72);
+            txtCutoffAmps.Name = "txtCutoffAmps";
+            txtCutoffAmps.Size = new Size(134, 31);
+            txtCutoffAmps.TabIndex = 9;
             // 
-            // label4
+            // lblCutoffAmps
             // 
-            label4.AutoSize = true;
-            label4.Location = new Point(24, 128);
-            label4.Name = "label4";
-            label4.Size = new Size(59, 25);
-            label4.TabIndex = 20;
-            label4.Text = "label4";
+            lblCutoffAmps.AutoSize = true;
+            lblCutoffAmps.Location = new Point(8, 72);
+            lblCutoffAmps.Name = "lblCutoffAmps";
+            lblCutoffAmps.Size = new Size(124, 25);
+            lblCutoffAmps.TabIndex = 13;
+            lblCutoffAmps.Text = "Cutoff (Amps)";
             // 
-            // label3
+            // txtMaxCurrRaw
             // 
-            label3.AutoSize = true;
-            label3.Location = new Point(24, 88);
-            label3.Name = "label3";
-            label3.Size = new Size(59, 25);
-            label3.TabIndex = 19;
-            label3.Text = "label3";
+            txtMaxCurrRaw.Location = new Point(184, 112);
+            txtMaxCurrRaw.Name = "txtMaxCurrRaw";
+            txtMaxCurrRaw.Size = new Size(134, 31);
+            txtMaxCurrRaw.TabIndex = 10;
             // 
-            // label2
+            // txtCutoffRaw
             // 
-            label2.AutoSize = true;
-            label2.Location = new Point(24, 48);
-            label2.Name = "label2";
-            label2.Size = new Size(59, 25);
-            label2.TabIndex = 18;
-            label2.Text = "label2";
+            txtCutoffRaw.Location = new Point(184, 32);
+            txtCutoffRaw.Name = "txtCutoffRaw";
+            txtCutoffRaw.Size = new Size(134, 31);
+            txtCutoffRaw.TabIndex = 11;
             // 
-            // label1
+            // txtSimDuration
             // 
-            label1.AutoSize = true;
-            label1.Location = new Point(24, 16);
-            label1.Name = "label1";
-            label1.Size = new Size(59, 25);
-            label1.TabIndex = 17;
-            label1.Text = "label1";
+            txtSimDuration.Location = new Point(168, 8);
+            txtSimDuration.Name = "txtSimDuration";
+            txtSimDuration.Size = new Size(120, 31);
+            txtSimDuration.TabIndex = 7;
             // 
-            // richTextBox1
+            // btnStopSim
             // 
-            richTextBox1.Location = new Point(8, 296);
-            richTextBox1.Name = "richTextBox1";
-            richTextBox1.Size = new Size(248, 144);
-            richTextBox1.TabIndex = 16;
-            richTextBox1.Text = "";
+            btnStopSim.Location = new Point(8, 128);
+            btnStopSim.Name = "btnStopSim";
+            btnStopSim.Size = new Size(112, 34);
+            btnStopSim.TabIndex = 6;
+            btnStopSim.Text = "Stop";
+            btnStopSim.UseVisualStyleBackColor = true;
             // 
-            // textBox6
+            // btnStartSim
             // 
-            textBox6.Location = new Point(96, 48);
-            textBox6.Name = "textBox6";
-            textBox6.Size = new Size(150, 31);
-            textBox6.TabIndex = 15;
-            // 
-            // textBox5
-            // 
-            textBox5.Location = new Point(96, 88);
-            textBox5.Name = "textBox5";
-            textBox5.Size = new Size(150, 31);
-            textBox5.TabIndex = 14;
-            // 
-            // textBox4
-            // 
-            textBox4.Location = new Point(96, 128);
-            textBox4.Name = "textBox4";
-            textBox4.Size = new Size(150, 31);
-            textBox4.TabIndex = 13;
-            // 
-            // textBox3
-            // 
-            textBox3.Location = new Point(96, 208);
-            textBox3.Name = "textBox3";
-            textBox3.Size = new Size(150, 31);
-            textBox3.TabIndex = 12;
-            // 
-            // textBox2
-            // 
-            textBox2.Location = new Point(96, 168);
-            textBox2.Name = "textBox2";
-            textBox2.Size = new Size(150, 31);
-            textBox2.TabIndex = 11;
-            // 
-            // textBox1
-            // 
-            textBox1.Location = new Point(96, 8);
-            textBox1.Name = "textBox1";
-            textBox1.Size = new Size(150, 31);
-            textBox1.TabIndex = 10;
-            // 
-            // btnSubmitForm
-            // 
-            btnSubmitForm.Location = new Point(696, 400);
-            btnSubmitForm.Name = "btnSubmitForm";
-            btnSubmitForm.Size = new Size(192, 34);
-            btnSubmitForm.TabIndex = 9;
-            btnSubmitForm.Text = "Submit Form";
-            btnSubmitForm.UseVisualStyleBackColor = true;
-            // 
-            // tabAbout
-            // 
-            tabAbout.Location = new Point(4, 34);
-            tabAbout.Name = "tabAbout";
-            tabAbout.Padding = new Padding(3);
-            tabAbout.Size = new Size(900, 446);
-            tabAbout.TabIndex = 4;
-            tabAbout.Text = "About";
-            tabAbout.UseVisualStyleBackColor = true;
-            // 
-            // lblDuration
-            // 
-            lblDuration.AutoSize = true;
-            lblDuration.Location = new Point(8, 8);
-            lblDuration.Name = "lblDuration";
-            lblDuration.Size = new Size(81, 25);
-            lblDuration.TabIndex = 3;
-            lblDuration.Text = "Duration";
-            // 
-            // lblBaudRate
-            // 
-            lblBaudRate.AutoSize = true;
-            lblBaudRate.Location = new Point(8, 48);
-            lblBaudRate.Name = "lblBaudRate";
-            lblBaudRate.Size = new Size(92, 25);
-            lblBaudRate.TabIndex = 4;
-            lblBaudRate.Text = "Baud Rate";
+            btnStartSim.Location = new Point(176, 128);
+            btnStartSim.Name = "btnStartSim";
+            btnStartSim.Size = new Size(112, 34);
+            btnStartSim.TabIndex = 1;
+            btnStartSim.Text = "Start";
+            btnStartSim.UseVisualStyleBackColor = true;
             // 
             // lblSimProfile
             // 
@@ -781,29 +716,256 @@
             lblSimProfile.TabIndex = 5;
             lblSimProfile.Text = "Charger Profile";
             // 
-            // btnStartSim
+            // lblBaudRate
             // 
-            btnStartSim.Location = new Point(152, 128);
-            btnStartSim.Name = "btnStartSim";
-            btnStartSim.Size = new Size(112, 34);
-            btnStartSim.TabIndex = 1;
-            btnStartSim.Text = "Start";
-            btnStartSim.UseVisualStyleBackColor = true;
+            lblBaudRate.AutoSize = true;
+            lblBaudRate.Location = new Point(8, 48);
+            lblBaudRate.Name = "lblBaudRate";
+            lblBaudRate.Size = new Size(92, 25);
+            lblBaudRate.TabIndex = 4;
+            lblBaudRate.Text = "Baud Rate";
             // 
-            // btnStopSim
+            // lblDuration
             // 
-            btnStopSim.Location = new Point(272, 128);
-            btnStopSim.Name = "btnStopSim";
-            btnStopSim.Size = new Size(112, 34);
-            btnStopSim.TabIndex = 6;
-            btnStopSim.Text = "Stop";
-            btnStopSim.UseVisualStyleBackColor = true;
+            lblDuration.AutoSize = true;
+            lblDuration.Location = new Point(8, 8);
+            lblDuration.Name = "lblDuration";
+            lblDuration.Size = new Size(163, 25);
+            lblDuration.TabIndex = 3;
+            lblDuration.Text = "Duration (Seconds)";
+            // 
+            // cmbBxChgProfile
+            // 
+            cmbBxChgProfile.FormattingEnabled = true;
+            cmbBxChgProfile.Location = new Point(168, 88);
+            cmbBxChgProfile.Name = "cmbBxChgProfile";
+            cmbBxChgProfile.Size = new Size(120, 33);
+            cmbBxChgProfile.TabIndex = 2;
+            // 
+            // cmbBxBaudRate
+            // 
+            cmbBxBaudRate.FormattingEnabled = true;
+            cmbBxBaudRate.Location = new Point(168, 48);
+            cmbBxBaudRate.Name = "cmbBxBaudRate";
+            cmbBxBaudRate.Size = new Size(120, 33);
+            cmbBxBaudRate.TabIndex = 1;
+            // 
+            // tabDiagnostics
+            // 
+            tabDiagnostics.Controls.Add(btnClearDiagForm);
+            tabDiagnostics.Controls.Add(grpboxDiagOutput);
+            tabDiagnostics.Controls.Add(lblType);
+            tabDiagnostics.Controls.Add(lblStickerInfo);
+            tabDiagnostics.Controls.Add(lblToolSerialNum);
+            tabDiagnostics.Controls.Add(lblSubmitDiagDate);
+            tabDiagnostics.Controls.Add(lblOneKeyID);
+            tabDiagnostics.Controls.Add(txtSubmitDiagDate);
+            tabDiagnostics.Controls.Add(txtSubmitDiagSerial);
+            tabDiagnostics.Controls.Add(txtSubmitDiagSticker);
+            tabDiagnostics.Controls.Add(txtSubmitDiagType);
+            tabDiagnostics.Controls.Add(txtOneKeyID);
+            tabDiagnostics.Controls.Add(btnSubmitDiagForm);
+            tabDiagnostics.Location = new Point(4, 34);
+            tabDiagnostics.Name = "tabDiagnostics";
+            tabDiagnostics.Padding = new Padding(3);
+            tabDiagnostics.Size = new Size(900, 474);
+            tabDiagnostics.TabIndex = 3;
+            tabDiagnostics.Text = "Submit Diagnostics";
+            tabDiagnostics.UseVisualStyleBackColor = true;
+            // 
+            // btnClearDiagForm
+            // 
+            btnClearDiagForm.Location = new Point(576, 216);
+            btnClearDiagForm.Name = "btnClearDiagForm";
+            btnClearDiagForm.Size = new Size(152, 34);
+            btnClearDiagForm.TabIndex = 23;
+            btnClearDiagForm.Text = "Clear Form";
+            btnClearDiagForm.UseVisualStyleBackColor = true;
+            // 
+            // grpboxDiagOutput
+            // 
+            grpboxDiagOutput.Controls.Add(rtbSubmitDiagReadOnly);
+            grpboxDiagOutput.Location = new Point(296, 8);
+            grpboxDiagOutput.Name = "grpboxDiagOutput";
+            grpboxDiagOutput.Size = new Size(592, 200);
+            grpboxDiagOutput.TabIndex = 22;
+            grpboxDiagOutput.TabStop = false;
+            grpboxDiagOutput.Text = "Diagnostic Output";
+            // 
+            // rtbSubmitDiagReadOnly
+            // 
+            rtbSubmitDiagReadOnly.Location = new Point(8, 32);
+            rtbSubmitDiagReadOnly.Name = "rtbSubmitDiagReadOnly";
+            rtbSubmitDiagReadOnly.Size = new Size(576, 160);
+            rtbSubmitDiagReadOnly.TabIndex = 16;
+            rtbSubmitDiagReadOnly.Text = "";
+            // 
+            // lblType
+            // 
+            lblType.AutoSize = true;
+            lblType.Location = new Point(16, 176);
+            lblType.Name = "lblType";
+            lblType.Size = new Size(49, 25);
+            lblType.TabIndex = 21;
+            lblType.Text = "Type";
+            // 
+            // lblStickerInfo
+            // 
+            lblStickerInfo.AutoSize = true;
+            lblStickerInfo.Location = new Point(16, 136);
+            lblStickerInfo.Name = "lblStickerInfo";
+            lblStickerInfo.Size = new Size(63, 25);
+            lblStickerInfo.TabIndex = 20;
+            lblStickerInfo.Text = "Sticker";
+            // 
+            // lblToolSerialNum
+            // 
+            lblToolSerialNum.AutoSize = true;
+            lblToolSerialNum.Location = new Point(16, 96);
+            lblToolSerialNum.Name = "lblToolSerialNum";
+            lblToolSerialNum.Size = new Size(70, 25);
+            lblToolSerialNum.TabIndex = 19;
+            lblToolSerialNum.Text = "Serial #";
+            // 
+            // lblSubmitDiagDate
+            // 
+            lblSubmitDiagDate.AutoSize = true;
+            lblSubmitDiagDate.Location = new Point(16, 56);
+            lblSubmitDiagDate.Name = "lblSubmitDiagDate";
+            lblSubmitDiagDate.Size = new Size(49, 25);
+            lblSubmitDiagDate.TabIndex = 18;
+            lblSubmitDiagDate.Text = "Date";
+            // 
+            // lblOneKeyID
+            // 
+            lblOneKeyID.AutoSize = true;
+            lblOneKeyID.Location = new Point(16, 16);
+            lblOneKeyID.Name = "lblOneKeyID";
+            lblOneKeyID.Size = new Size(103, 25);
+            lblOneKeyID.TabIndex = 17;
+            lblOneKeyID.Text = "One-Key ID";
+            // 
+            // txtSubmitDiagDate
+            // 
+            txtSubmitDiagDate.Location = new Point(120, 56);
+            txtSubmitDiagDate.Name = "txtSubmitDiagDate";
+            txtSubmitDiagDate.Size = new Size(150, 31);
+            txtSubmitDiagDate.TabIndex = 15;
+            // 
+            // txtSubmitDiagSerial
+            // 
+            txtSubmitDiagSerial.Location = new Point(120, 96);
+            txtSubmitDiagSerial.Name = "txtSubmitDiagSerial";
+            txtSubmitDiagSerial.Size = new Size(150, 31);
+            txtSubmitDiagSerial.TabIndex = 14;
+            // 
+            // txtSubmitDiagSticker
+            // 
+            txtSubmitDiagSticker.Location = new Point(120, 136);
+            txtSubmitDiagSticker.Name = "txtSubmitDiagSticker";
+            txtSubmitDiagSticker.Size = new Size(150, 31);
+            txtSubmitDiagSticker.TabIndex = 13;
+            // 
+            // txtSubmitDiagType
+            // 
+            txtSubmitDiagType.Location = new Point(120, 176);
+            txtSubmitDiagType.Name = "txtSubmitDiagType";
+            txtSubmitDiagType.Size = new Size(150, 31);
+            txtSubmitDiagType.TabIndex = 11;
+            // 
+            // txtOneKeyID
+            // 
+            txtOneKeyID.Location = new Point(120, 16);
+            txtOneKeyID.Name = "txtOneKeyID";
+            txtOneKeyID.Size = new Size(150, 31);
+            txtOneKeyID.TabIndex = 10;
+            // 
+            // btnSubmitDiagForm
+            // 
+            btnSubmitDiagForm.Location = new Point(736, 216);
+            btnSubmitDiagForm.Name = "btnSubmitDiagForm";
+            btnSubmitDiagForm.Size = new Size(152, 34);
+            btnSubmitDiagForm.TabIndex = 9;
+            btnSubmitDiagForm.Text = "Submit Form";
+            btnSubmitDiagForm.UseVisualStyleBackColor = true;
+            // 
+            // tabAbout
+            // 
+            tabAbout.Controls.Add(linkLabel2);
+            tabAbout.Controls.Add(label1);
+            tabAbout.Controls.Add(linkLabel1);
+            tabAbout.Controls.Add(lblMartin);
+            tabAbout.Controls.Add(lblAboutTitle);
+            tabAbout.Location = new Point(4, 34);
+            tabAbout.Name = "tabAbout";
+            tabAbout.Padding = new Padding(3);
+            tabAbout.Size = new Size(900, 474);
+            tabAbout.TabIndex = 4;
+            tabAbout.Text = "About";
+            tabAbout.UseVisualStyleBackColor = true;
+            // 
+            // lblAboutTitle
+            // 
+            lblAboutTitle.Font = new Font("Segoe UI Black", 26F, FontStyle.Bold | FontStyle.Italic, GraphicsUnit.Point, 0);
+            lblAboutTitle.Image = (Image)resources.GetObject("lblAboutTitle.Image");
+            lblAboutTitle.ImageAlign = ContentAlignment.MiddleLeft;
+            lblAboutTitle.Location = new Point(144, 8);
+            lblAboutTitle.Name = "lblAboutTitle";
+            lblAboutTitle.Size = new Size(632, 80);
+            lblAboutTitle.TabIndex = 0;
+            lblAboutTitle.Text = "         Pack Analyzer GUI";
+            lblAboutTitle.TextAlign = ContentAlignment.TopCenter;
+            // 
+            // lblMartin
+            // 
+            lblMartin.AutoSize = true;
+            lblMartin.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            lblMartin.Location = new Point(224, 80);
+            lblMartin.Name = "lblMartin";
+            lblMartin.Size = new Size(459, 28);
+            lblMartin.TabIndex = 1;
+            lblMartin.Text = "Original M18 Protocol code by: Martin Jansson";
+            // 
+            // linkLabel1
+            // 
+            linkLabel1.AutoSize = true;
+            linkLabel1.LinkArea = new LinkArea(13, 60);
+            linkLabel1.Location = new Point(200, 112);
+            linkLabel1.Name = "linkLabel1";
+            linkLabel1.Size = new Size(514, 30);
+            linkLabel1.TabIndex = 2;
+            linkLabel1.TabStop = true;
+            linkLabel1.Text = "GitHub Repo: https://github.com/mnh-jansson/m18-protocol/";
+            linkLabel1.UseCompatibleTextRendering = true;
+            linkLabel1.LinkClicked += linkLabel1_LinkClicked;
+            // 
+            // linkLabel2
+            // 
+            linkLabel2.AutoSize = true;
+            linkLabel2.LinkArea = new LinkArea(13, 60);
+            linkLabel2.Location = new Point(272, 176);
+            linkLabel2.Name = "linkLabel2";
+            linkLabel2.Size = new Size(347, 30);
+            linkLabel2.TabIndex = 4;
+            linkLabel2.TabStop = true;
+            linkLabel2.Text = "GitHub Repo: https://github.com/KillaVolt";
+            linkLabel2.UseCompatibleTextRendering = true;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            label1.Location = new Point(320, 144);
+            label1.Name = "label1";
+            label1.Size = new Size(258, 28);
+            label1.TabIndex = 3;
+            label1.Text = "GUI designed By: KillaVolt";
             // 
             // frmMain
             // 
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(928, 499);
+            ClientSize = new Size(928, 528);
             Controls.Add(tabControl1);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "frmMain";
@@ -822,8 +984,13 @@
             grpbxDebugCmd.PerformLayout();
             tabPage3.ResumeLayout(false);
             tabPage3.PerformLayout();
+            grpBxSimCustomProfile.ResumeLayout(false);
+            grpBxSimCustomProfile.PerformLayout();
             tabDiagnostics.ResumeLayout(false);
             tabDiagnostics.PerformLayout();
+            grpboxDiagOutput.ResumeLayout(false);
+            tabAbout.ResumeLayout(false);
+            tabAbout.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -832,7 +999,7 @@
         private TabControl tabControl1;
         private TabPage tabPage1;
         private TabPage tabAdvanced;
-        private ComboBox comboBox1;
+        private ComboBox cmbBxSerialPort;
         private RichTextBox rtbOutput;
         private TabPage tabPage3;
         private TabPage tabDiagnostics;
@@ -878,28 +1045,44 @@
         private Label lblAddrHigh;
         private Label lblCommand;
         private TextBox txtCommand;
-        private ComboBox comboBox4;
-        private ComboBox comboBox3;
-        private ComboBox cmbDuration;
+        private ComboBox cmbBxChgProfile;
+        private ComboBox cmbBxBaudRate;
         private Button btnRestoreTxRxState;
-        private Button btnSubmitForm;
+        private Button btnSubmitDiagForm;
         private Label label6;
-        private Label label5;
-        private Label label4;
-        private Label label3;
-        private Label label2;
-        private Label label1;
-        private RichTextBox richTextBox1;
-        private TextBox textBox6;
-        private TextBox textBox5;
-        private TextBox textBox4;
+        private Label lblType;
+        private Label lblStickerInfo;
+        private Label lblToolSerialNum;
+        private Label lblSubmitDiagDate;
+        private Label lblOneKeyID;
+        private RichTextBox rtbSubmitDiagReadOnly;
+        private TextBox txtSubmitDiagDate;
+        private TextBox txtSubmitDiagSerial;
+        private TextBox txtSubmitDiagSticker;
         private TextBox textBox3;
-        private TextBox textBox2;
-        private TextBox textBox1;
+        private TextBox txtSubmitDiagType;
+        private TextBox txtOneKeyID;
         private Button btnStartSim;
         private Label lblSimProfile;
         private Label lblBaudRate;
         private Label lblDuration;
         private Button btnStopSim;
+        private TextBox txtSimDuration;
+        private TextBox txtCutoffRaw;
+        private TextBox txtMaxCurrRaw;
+        private TextBox txtCutoffAmps;
+        private TextBox txtMaxCurrAmps;
+        private Label lblMaxCurrAmps;
+        private Label lblMaxCurrRaw;
+        private Label lblCutoffAmps;
+        private Label lblCutoffRaw;
+        private GroupBox grpboxDiagOutput;
+        private Button btnClearDiagForm;
+        private GroupBox grpBxSimCustomProfile;
+        private Label lblAboutTitle;
+        private LinkLabel linkLabel1;
+        private Label lblMartin;
+        private LinkLabel linkLabel2;
+        private Label label1;
     }
 }

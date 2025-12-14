@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("M18BatteryInfo")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1818b2638f1ef88717123ce42b72196c27be34d2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+895037738ec107b30188ac80245b859c86532812")]
 [assembly: System.Reflection.AssemblyProductAttribute("M18BatteryInfo")]
 [assembly: System.Reflection.AssemblyTitleAttribute("M18BatteryInfo")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

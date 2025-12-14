@@ -194,8 +194,9 @@ namespace M18BatteryInfo
 
         private void AppendLog(string message)
         {
-            var formattedMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}" + Environment.NewLine;
-            rtbOutput.AppendText(formattedMessage);
+            var formattedMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
+            var entry = $"====== OUTPUT ======{Environment.NewLine}{formattedMessage}{Environment.NewLine}";
+            rtbOutput.AppendText(entry);
             rtbOutput.ScrollToCaret();
         }
 

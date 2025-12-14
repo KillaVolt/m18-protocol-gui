@@ -1,10 +1,15 @@
+using System;
+using System.Collections.Generic;
 using System.IO.Ports;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace M18BatteryInfo
 {
     public partial class frmMain : Form
     {
-        private SerialPort? _serialPort;
+        private M18Protocol? _protocol;
         private bool _hasAppendedLog;
 
         public frmMain()
@@ -14,6 +19,20 @@ namespace M18BatteryInfo
             btnRefresh.Click += btnRefresh_Click;
             btnConnect.Click += btnConnect_Click;
             btnDisconnect.Click += btnDisconnect_Click;
+            btnIdle.Click += btnIdle_Click;
+            btnActive.Click += btnActive_Click;
+            btnHealthReport.Click += btnHealthReport_Click;
+            btnReset.Click += btnReset_Click;
+            btnCopyOutput.Click += btnCopyOutput_Click;
+
+            toolTipSimpleTab.SetToolTip(btnRefresh, "Refresh the list of available serial ports.");
+            toolTipSimpleTab.SetToolTip(btnConnect, "Connect to the selected serial port.");
+            toolTipSimpleTab.SetToolTip(btnDisconnect, "Disconnect from the currently connected device.");
+            toolTipSimpleTab.SetToolTip(btnIdle, "Drive TX low (idle). Safe for connect/disconnect.");
+            toolTipSimpleTab.SetToolTip(btnActive, "Drive TX high (active). Charger simulation.");
+            toolTipSimpleTab.SetToolTip(btnHealthReport, "Read and display a basic battery health report.");
+            toolTipSimpleTab.SetToolTip(btnReset, "Send a reset signal to the connected battery.");
+            toolTipSimpleTab.SetToolTip(btnCopyOutput, "Copy all output log text to the clipboard.");
         }
 
         private void toolStripButton1_Click(object sender, EventArgs e)
@@ -89,7 +108,7 @@ namespace M18BatteryInfo
             }
         }
 
-        private void btnConnect_Click(object? sender, EventArgs e)
+        private async void btnConnect_Click(object? sender, EventArgs e)
         {
             if (cmbBxSerialPort.SelectedItem is not SerialPortDisplay selectedPort)
             {
@@ -98,64 +117,146 @@ namespace M18BatteryInfo
                 return;
             }
 
-            if (_serialPort?.IsOpen == true)
+            if (_protocol != null)
             {
-                if (string.Equals(_serialPort.PortName, selectedPort.PortName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(_protocol.PortName, selectedPort.PortName, StringComparison.OrdinalIgnoreCase))
                 {
                     AppendLog($"Port {selectedPort.PortName} is already open. Ignoring duplicate connect request.");
                     MessageBox.Show($"{selectedPort.PortName} is already open.", "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
                 }
 
-                AppendLog($"A different port ({_serialPort.PortName}) is currently open. Closing it before opening {selectedPort.PortName}...");
-                btnDisconnect_Click(sender, e);
+                AppendLog($"A different port ({_protocol.PortName}) is currently open. Closing it before opening {selectedPort.PortName}...");
+                await DisconnectAsync();
             }
 
             AppendLog($"Attempting to open {selectedPort} with settings: 4800 baud, 8 data bits, parity None, stop bits One, handshake None.");
 
-            _serialPort = new SerialPort(selectedPort.PortName, 4800, Parity.None, 8, StopBits.One)
-            {
-                Handshake = Handshake.None,
-                ReadTimeout = 500,
-                WriteTimeout = 500
-            };
-
             try
             {
-                _serialPort.Open();
+                await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName));
                 AppendLog($"{selectedPort} opened successfully.");
             }
             catch (Exception ex)
             {
+                _protocol = null;
                 LogError($"Failed to open {selectedPort}.", ex);
             }
         }
 
-        private void btnDisconnect_Click(object? sender, EventArgs e)
+        private async void btnDisconnect_Click(object? sender, EventArgs e)
         {
-            if (_serialPort == null || !_serialPort.IsOpen)
+            await DisconnectAsync();
+        }
+
+        private async Task DisconnectAsync()
+        {
+            if (_protocol == null)
             {
                 AppendLog("Disconnect requested, but no serial port is currently open.");
                 MessageBox.Show("No serial port is currently open.", "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            AppendLog($"Closing {_serialPort.PortName}...");
+            AppendLog($"Closing {_protocol.PortName}...");
 
             try
             {
-                _serialPort.Close();
-                AppendLog($"{_serialPort.PortName} closed successfully.");
+                await Task.Run(() => _protocol.Close());
+                AppendLog($"{_protocol.PortName} closed successfully.");
             }
             catch (Exception ex)
             {
-                LogError($"Error while closing {_serialPort.PortName}.", ex);
+                LogError($"Error while closing {_protocol.PortName}.", ex);
             }
             finally
             {
-                _serialPort.Dispose();
-                _serialPort = null;
+                _protocol = null;
             }
+        }
+
+        private async void btnIdle_Click(object? sender, EventArgs e)
+        {
+            if (!EnsureConnected())
+            {
+                return;
+            }
+
+            await Task.Run(() => _protocol!.Idle());
+            AppendLog("TX set to Idle (low). Safe to connect or disconnect battery.");
+        }
+
+        private async void btnActive_Click(object? sender, EventArgs e)
+        {
+            if (!EnsureConnected())
+            {
+                return;
+            }
+
+            await Task.Run(() => _protocol!.High());
+            AppendLog("TX set to Active (high). Charger simulation enabled.");
+        }
+
+        private async void btnHealthReport_Click(object? sender, EventArgs e)
+        {
+            if (!EnsureConnected())
+            {
+                return;
+            }
+
+            try
+            {
+                var report = await Task.Run(() => _protocol!.HealthReport());
+                AppendLog("=== Health report ===");
+                AppendLog(report);
+                AppendLog("Health report complete.");
+            }
+            catch (Exception ex)
+            {
+                LogError("Health report failed.", ex);
+            }
+        }
+
+        private async void btnReset_Click(object? sender, EventArgs e)
+        {
+            if (!EnsureConnected())
+            {
+                return;
+            }
+
+            try
+            {
+                var success = await Task.Run(() => _protocol!.Reset());
+                AppendLog(success ? "Reset command acknowledged by device." : "Reset command did not receive expected response.");
+            }
+            catch (Exception ex)
+            {
+                LogError("Reset failed.", ex);
+            }
+        }
+
+        private void btnCopyOutput_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(rtbOutput.Text))
+            {
+                AppendLog("No output to copy.");
+                return;
+            }
+
+            Clipboard.SetText(rtbOutput.Text);
+            AppendLog("Output copied to clipboard.");
+        }
+
+        private bool EnsureConnected()
+        {
+            if (_protocol != null)
+            {
+                return true;
+            }
+
+            AppendLog("No active connection. Please connect to a serial port first.");
+            MessageBox.Show("Please connect to a serial port first.", "Connection required", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
         }
 
         private Dictionary<string, string> GetPortDescriptions()
@@ -197,6 +298,12 @@ namespace M18BatteryInfo
         {
             var timestampedMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
             var prefix = _hasAppendedLog ? $"{Environment.NewLine}" : string.Empty;
+
+            if (rtbOutput.InvokeRequired)
+            {
+                rtbOutput.Invoke(new Action(() => AppendLog(message)));
+                return;
+            }
 
             rtbOutput.AppendText($"{prefix}{timestampedMessage}");
             rtbOutput.SelectionStart = rtbOutput.TextLength;

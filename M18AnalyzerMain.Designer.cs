@@ -30,8 +30,8 @@
         {
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
-            tabControl1 = new TabControl();
-            tabPage1 = new TabPage();
+            tabControlM18Main = new TabControl();
+            tabSimple = new TabPage();
             grpOutput = new GroupBox();
             btnCopyOutput = new Button();
             btnReset = new Button();
@@ -76,7 +76,7 @@
             btnReadAllSpreadsheet = new Button();
             btnReadAllRegisters = new Button();
             rtbAdvOutput = new RichTextBox();
-            tabPage3 = new TabPage();
+            tabSimulation = new TabPage();
             grpBxSimCustomProfile = new GroupBox();
             lblCutoffRaw = new Label();
             lblMaxCurrAmps = new Label();
@@ -110,53 +110,53 @@
             txtOneKeyID = new TextBox();
             btnSubmitDiagForm = new Button();
             tabAbout = new TabPage();
-            linkLabel2 = new LinkLabel();
-            label1 = new Label();
-            linkLabel1 = new LinkLabel();
+            linkLabelKillaVolt = new LinkLabel();
+            lblKillaVoltAbout = new Label();
+            linkLabelMartin = new LinkLabel();
             lblMartin = new Label();
             lblAboutTitle = new Label();
             toolTipSimpleTab = new ToolTip(components);
-            tabControl1.SuspendLayout();
-            tabPage1.SuspendLayout();
+            tabControlM18Main.SuspendLayout();
+            tabSimple.SuspendLayout();
             grpOutput.SuspendLayout();
             tabAdvanced.SuspendLayout();
             grpTryCmd.SuspendLayout();
             grpbxDebugCmd.SuspendLayout();
-            tabPage3.SuspendLayout();
+            tabSimulation.SuspendLayout();
             grpBxSimCustomProfile.SuspendLayout();
             tabDiagnostics.SuspendLayout();
             grpboxDiagOutput.SuspendLayout();
             tabAbout.SuspendLayout();
             SuspendLayout();
             // 
-            // tabControl1
+            // tabControlM18Main
             // 
-            tabControl1.Controls.Add(tabPage1);
-            tabControl1.Controls.Add(tabAdvanced);
-            tabControl1.Controls.Add(tabPage3);
-            tabControl1.Controls.Add(tabDiagnostics);
-            tabControl1.Controls.Add(tabAbout);
-            tabControl1.Location = new Point(8, 8);
-            tabControl1.Name = "tabControl1";
-            tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(908, 512);
-            tabControl1.TabIndex = 0;
+            tabControlM18Main.Controls.Add(tabSimple);
+            tabControlM18Main.Controls.Add(tabAdvanced);
+            tabControlM18Main.Controls.Add(tabSimulation);
+            tabControlM18Main.Controls.Add(tabDiagnostics);
+            tabControlM18Main.Controls.Add(tabAbout);
+            tabControlM18Main.Location = new Point(8, 8);
+            tabControlM18Main.Name = "tabControlM18Main";
+            tabControlM18Main.SelectedIndex = 0;
+            tabControlM18Main.Size = new Size(908, 512);
+            tabControlM18Main.TabIndex = 0;
             // 
-            // tabPage1
+            // tabSimple
             // 
-            tabPage1.Controls.Add(grpOutput);
-            tabPage1.Controls.Add(btnDisconnect);
-            tabPage1.Controls.Add(btnConnect);
-            tabPage1.Controls.Add(btnRefresh);
-            tabPage1.Controls.Add(lblSerialPort);
-            tabPage1.Controls.Add(cmbBxSerialPort);
-            tabPage1.Location = new Point(4, 34);
-            tabPage1.Name = "tabPage1";
-            tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(900, 474);
-            tabPage1.TabIndex = 0;
-            tabPage1.Text = "Simple";
-            tabPage1.UseVisualStyleBackColor = true;
+            tabSimple.Controls.Add(grpOutput);
+            tabSimple.Controls.Add(btnDisconnect);
+            tabSimple.Controls.Add(btnConnect);
+            tabSimple.Controls.Add(btnRefresh);
+            tabSimple.Controls.Add(lblSerialPort);
+            tabSimple.Controls.Add(cmbBxSerialPort);
+            tabSimple.Location = new Point(4, 34);
+            tabSimple.Name = "tabSimple";
+            tabSimple.Padding = new Padding(3);
+            tabSimple.Size = new Size(900, 474);
+            tabSimple.TabIndex = 0;
+            tabSimple.Text = "Simple";
+            tabSimple.UseVisualStyleBackColor = true;
             // 
             // grpOutput
             // 
@@ -507,7 +507,7 @@
             // chkboxRxLog
             // 
             chkboxRxLog.AutoSize = true;
-            chkboxRxLog.Location = new Point(744, 376);
+            chkboxRxLog.Location = new Point(736, 376);
             chkboxRxLog.Name = "chkboxRxLog";
             chkboxRxLog.Size = new Size(149, 29);
             chkboxRxLog.TabIndex = 8;
@@ -517,7 +517,7 @@
             // chkbxTXLog
             // 
             chkbxTXLog.AutoSize = true;
-            chkbxTXLog.Location = new Point(592, 376);
+            chkbxTXLog.Location = new Point(576, 376);
             chkbxTXLog.Name = "chkbxTXLog";
             chkbxTXLog.Size = new Size(150, 29);
             chkbxTXLog.TabIndex = 7;
@@ -585,24 +585,24 @@
             rtbAdvOutput.TabIndex = 0;
             rtbAdvOutput.Text = "";
             // 
-            // tabPage3
+            // tabSimulation
             // 
-            tabPage3.Controls.Add(grpBxSimCustomProfile);
-            tabPage3.Controls.Add(txtSimDuration);
-            tabPage3.Controls.Add(btnStopSim);
-            tabPage3.Controls.Add(btnStartSim);
-            tabPage3.Controls.Add(lblSimProfile);
-            tabPage3.Controls.Add(lblBaudRate);
-            tabPage3.Controls.Add(lblDuration);
-            tabPage3.Controls.Add(cmbBxChgProfile);
-            tabPage3.Controls.Add(cmbBxBaudRate);
-            tabPage3.Location = new Point(4, 34);
-            tabPage3.Name = "tabPage3";
-            tabPage3.Padding = new Padding(3);
-            tabPage3.Size = new Size(900, 474);
-            tabPage3.TabIndex = 2;
-            tabPage3.Text = "Simulation";
-            tabPage3.UseVisualStyleBackColor = true;
+            tabSimulation.Controls.Add(grpBxSimCustomProfile);
+            tabSimulation.Controls.Add(txtSimDuration);
+            tabSimulation.Controls.Add(btnStopSim);
+            tabSimulation.Controls.Add(btnStartSim);
+            tabSimulation.Controls.Add(lblSimProfile);
+            tabSimulation.Controls.Add(lblBaudRate);
+            tabSimulation.Controls.Add(lblDuration);
+            tabSimulation.Controls.Add(cmbBxChgProfile);
+            tabSimulation.Controls.Add(cmbBxBaudRate);
+            tabSimulation.Location = new Point(4, 34);
+            tabSimulation.Name = "tabSimulation";
+            tabSimulation.Padding = new Padding(3);
+            tabSimulation.Size = new Size(900, 474);
+            tabSimulation.TabIndex = 2;
+            tabSimulation.Text = "Simulation";
+            tabSimulation.UseVisualStyleBackColor = true;
             // 
             // grpBxSimCustomProfile
             // 
@@ -895,9 +895,9 @@
             // 
             // tabAbout
             // 
-            tabAbout.Controls.Add(linkLabel2);
-            tabAbout.Controls.Add(label1);
-            tabAbout.Controls.Add(linkLabel1);
+            tabAbout.Controls.Add(linkLabelKillaVolt);
+            tabAbout.Controls.Add(lblKillaVoltAbout);
+            tabAbout.Controls.Add(linkLabelMartin);
             tabAbout.Controls.Add(lblMartin);
             tabAbout.Controls.Add(lblAboutTitle);
             tabAbout.Location = new Point(4, 34);
@@ -908,40 +908,40 @@
             tabAbout.Text = "About";
             tabAbout.UseVisualStyleBackColor = true;
             // 
-            // linkLabel2
+            // linkLabelKillaVolt
             // 
-            linkLabel2.AutoSize = true;
-            linkLabel2.LinkArea = new LinkArea(13, 60);
-            linkLabel2.Location = new Point(272, 176);
-            linkLabel2.Name = "linkLabel2";
-            linkLabel2.Size = new Size(347, 30);
-            linkLabel2.TabIndex = 4;
-            linkLabel2.TabStop = true;
-            linkLabel2.Text = "GitHub Repo: https://github.com/KillaVolt";
-            linkLabel2.UseCompatibleTextRendering = true;
+            linkLabelKillaVolt.AutoSize = true;
+            linkLabelKillaVolt.LinkArea = new LinkArea(13, 60);
+            linkLabelKillaVolt.Location = new Point(272, 176);
+            linkLabelKillaVolt.Name = "linkLabelKillaVolt";
+            linkLabelKillaVolt.Size = new Size(347, 30);
+            linkLabelKillaVolt.TabIndex = 4;
+            linkLabelKillaVolt.TabStop = true;
+            linkLabelKillaVolt.Text = "GitHub Repo: https://github.com/KillaVolt";
+            linkLabelKillaVolt.UseCompatibleTextRendering = true;
             // 
-            // label1
+            // lblKillaVoltAbout
             // 
-            label1.AutoSize = true;
-            label1.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            label1.Location = new Point(320, 144);
-            label1.Name = "label1";
-            label1.Size = new Size(258, 28);
-            label1.TabIndex = 3;
-            label1.Text = "GUI designed By: KillaVolt";
+            lblKillaVoltAbout.AutoSize = true;
+            lblKillaVoltAbout.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            lblKillaVoltAbout.Location = new Point(320, 144);
+            lblKillaVoltAbout.Name = "lblKillaVoltAbout";
+            lblKillaVoltAbout.Size = new Size(258, 28);
+            lblKillaVoltAbout.TabIndex = 3;
+            lblKillaVoltAbout.Text = "GUI designed By: KillaVolt";
             // 
-            // linkLabel1
+            // linkLabelMartin
             // 
-            linkLabel1.AutoSize = true;
-            linkLabel1.LinkArea = new LinkArea(13, 60);
-            linkLabel1.Location = new Point(200, 112);
-            linkLabel1.Name = "linkLabel1";
-            linkLabel1.Size = new Size(514, 30);
-            linkLabel1.TabIndex = 2;
-            linkLabel1.TabStop = true;
-            linkLabel1.Text = "GitHub Repo: https://github.com/mnh-jansson/m18-protocol/";
-            linkLabel1.UseCompatibleTextRendering = true;
-            linkLabel1.LinkClicked += linkLabel1_LinkClicked;
+            linkLabelMartin.AutoSize = true;
+            linkLabelMartin.LinkArea = new LinkArea(13, 60);
+            linkLabelMartin.Location = new Point(200, 112);
+            linkLabelMartin.Name = "linkLabelMartin";
+            linkLabelMartin.Size = new Size(514, 30);
+            linkLabelMartin.TabIndex = 2;
+            linkLabelMartin.TabStop = true;
+            linkLabelMartin.Text = "GitHub Repo: https://github.com/mnh-jansson/m18-protocol/";
+            linkLabelMartin.UseCompatibleTextRendering = true;
+            linkLabelMartin.LinkClicked += linkLabel1_LinkClicked;
             // 
             // lblMartin
             // 
@@ -970,15 +970,15 @@
             AutoScaleDimensions = new SizeF(10F, 25F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(928, 528);
-            Controls.Add(tabControl1);
+            Controls.Add(tabControlM18Main);
             Icon = (Icon)resources.GetObject("$this.Icon");
             Name = "frmMain";
             ShowIcon = false;
             Text = "M18 Pack Analyzer";
             Load += frmMain_Load;
-            tabControl1.ResumeLayout(false);
-            tabPage1.ResumeLayout(false);
-            tabPage1.PerformLayout();
+            tabControlM18Main.ResumeLayout(false);
+            tabSimple.ResumeLayout(false);
+            tabSimple.PerformLayout();
             grpOutput.ResumeLayout(false);
             tabAdvanced.ResumeLayout(false);
             tabAdvanced.PerformLayout();
@@ -986,8 +986,8 @@
             grpTryCmd.PerformLayout();
             grpbxDebugCmd.ResumeLayout(false);
             grpbxDebugCmd.PerformLayout();
-            tabPage3.ResumeLayout(false);
-            tabPage3.PerformLayout();
+            tabSimulation.ResumeLayout(false);
+            tabSimulation.PerformLayout();
             grpBxSimCustomProfile.ResumeLayout(false);
             grpBxSimCustomProfile.PerformLayout();
             tabDiagnostics.ResumeLayout(false);
@@ -1000,12 +1000,12 @@
 
         #endregion
 
-        private TabControl tabControl1;
-        private TabPage tabPage1;
+        private TabControl tabControlM18Main;
+        private TabPage tabSimple;
         private TabPage tabAdvanced;
         private ComboBox cmbBxSerialPort;
         private RichTextBox rtbOutput;
-        private TabPage tabPage3;
+        private TabPage tabSimulation;
         private TabPage tabDiagnostics;
         private Button btnConnect;
         private Button btnRefresh;
@@ -1084,9 +1084,9 @@
         private Button btnClearDiagForm;
         private GroupBox grpBxSimCustomProfile;
         private Label lblAboutTitle;
-        private LinkLabel linkLabel1;
+        private LinkLabel linkLabelMartin;
         private Label lblMartin;
-        private LinkLabel linkLabel2;
-        private Label label1;
+        private LinkLabel linkLabelKillaVolt;
+        private Label lblKillaVoltAbout;
     }
 }

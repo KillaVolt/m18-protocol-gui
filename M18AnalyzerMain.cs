@@ -196,7 +196,7 @@ namespace M18BatteryInfo
         private void AppendLog(string message)
         {
             var timestampedMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
-            var prefix = _hasAppendedLog ? $"{Environment.NewLine}{Environment.NewLine}" : string.Empty;
+            var prefix = _hasAppendedLog ? $"{Environment.NewLine}" : string.Empty;
 
             rtbOutput.AppendText($"{prefix}{timestampedMessage}");
             rtbOutput.SelectionStart = rtbOutput.TextLength;
@@ -210,6 +210,11 @@ namespace M18BatteryInfo
             var fullMessage = $"{context} Error details: {exception}";
             AppendLog(fullMessage);
             MessageBox.Show(fullMessage, "Serial Port Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        private void rtbOutput_TextChanged(object sender, EventArgs e)
+        {
+
         }
 
         private sealed record SerialPortDisplay(string PortName, string? Description)

@@ -120,11 +120,20 @@
   <metadata name="toolTipSimpleTab.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
     <value>9, 21</value>
   </metadata>
+  <data name="rtbOutput.Text" xml:space="preserve">
+    <value>Step 1: Choose the serial port for your UART device, and press connect UART.
+Step 2: Once UART is connected, set Idle (Tx Low).
+Step 3: Plug in battery.
+Step 3: Once battery has been plugged in set Active (Tx High).
+Step 4: Set Idle (Tx Low) before unplugging battery and/or disconnecting the serial port.
+===========================================================
+</value>
+  </data>
   <assembly alias="System.Drawing" name="System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
   <data name="lblAboutTitle.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAH0AAAAkCAYAAACkATUaAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAL
-        EAAACxABrSO9dQAAGy9JREFUeF7FXHdclMfWHgGRDiJFEESqCEoigjUaC4m95GrExBJrMMbCtSS2mGL0
+        DAAACwwBP0AiyAAAGy9JREFUeF7FXHdclMfWHgGRDiJFEESqCEoigjUaC4m95GrExBJrMMbCtSS2mGL0
         JsYSzY29JZZEjYWoEQsaVFBAQQGFZWHpvfe6vN95Bpa7bl6kxHu/P54fsPvOmbPzzKkzC6t88rRH+Z3A
         XhUPQuwqgh/atws0tjzgTu/a5BQjeXExq8vMYnVZ2Q0/c3KYIK9ngiC8iNpazYr7wT3LA+85isp8OaAr
         xjmX3wtyrngY4iYvLdWXV1czeUVFA8rLmUB//2VegkQiYV998QWTJSSw386eYynJyay2tpbl5eWxYtK/

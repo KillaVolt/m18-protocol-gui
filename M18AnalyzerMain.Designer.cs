@@ -221,7 +221,8 @@
             rtbOutput.Name = "rtbOutput";
             rtbOutput.Size = new Size(714, 314);
             rtbOutput.TabIndex = 0;
-            rtbOutput.Text = "Step 1: Set Idle.\nStep 2: Connect Battery.\nStep 3: Set Active.\n\n";
+            rtbOutput.Text = resources.GetString("rtbOutput.Text");
+            rtbOutput.TextChanged += rtbOutput_TextChanged;
             // 
             // btnIdle
             // 

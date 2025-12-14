@@ -11,6 +11,7 @@ namespace M18BatteryInfo
     {
         private M18Protocol? _protocol;
         private bool _hasAppendedLog;
+        private bool _hasAppendedAdvancedLog;
 
         public frmMain()
         {
@@ -24,6 +25,11 @@ namespace M18BatteryInfo
             btnHealthReport.Click += btnHealthReport_Click;
             btnReset.Click += btnReset_Click;
             btnCopyOutput.Click += btnCopyOutput_Click;
+            chkbxTXLog.CheckedChanged += chkbxTXLog_CheckedChanged;
+            chkboxRxLog.CheckedChanged += chkboxRxLog_CheckedChanged;
+
+            chkbxTXLog.Checked = true;
+            chkboxRxLog.Checked = true;
 
             toolTipSimpleTab.SetToolTip(btnRefresh, "Refresh the list of available serial ports.");
             toolTipSimpleTab.SetToolTip(btnConnect, "Connect to the selected serial port.");
@@ -135,6 +141,7 @@ namespace M18BatteryInfo
             try
             {
                 await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName));
+                ApplyProtocolLoggingPreferences();
                 AppendLog($"{selectedPort} opened successfully.");
             }
             catch (Exception ex)
@@ -296,20 +303,49 @@ namespace M18BatteryInfo
 
         private void AppendLog(string message)
         {
-            var timestampedMessage = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
-            var prefix = _hasAppendedLog ? $"{Environment.NewLine}" : string.Empty;
+            AppendSimpleLog(FormatLogMessage(message));
+        }
 
+        private void AppendSimpleLog(string formattedMessage)
+        {
             if (rtbOutput.InvokeRequired)
             {
-                rtbOutput.Invoke(new Action(() => AppendLog(message)));
+                rtbOutput.Invoke(new Action(() => AppendSimpleLog(formattedMessage)));
                 return;
             }
 
-            rtbOutput.AppendText($"{prefix}{timestampedMessage}");
+            var prefix = _hasAppendedLog ? Environment.NewLine : string.Empty;
+            rtbOutput.AppendText($"{prefix}{formattedMessage}");
             rtbOutput.SelectionStart = rtbOutput.TextLength;
             rtbOutput.ScrollToCaret();
-
             _hasAppendedLog = true;
+        }
+
+        private void AppendAdvancedLog(string formattedMessage)
+        {
+            if (rtbAdvOutput.InvokeRequired)
+            {
+                rtbAdvOutput.Invoke(new Action(() => AppendAdvancedLog(formattedMessage)));
+                return;
+            }
+
+            var prefix = _hasAppendedAdvancedLog ? Environment.NewLine : string.Empty;
+            rtbAdvOutput.AppendText($"{prefix}{formattedMessage}");
+            rtbAdvOutput.SelectionStart = rtbAdvOutput.TextLength;
+            rtbAdvOutput.ScrollToCaret();
+            _hasAppendedAdvancedLog = true;
+        }
+
+        private string FormatLogMessage(string message)
+        {
+            return $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
+        }
+
+        private void AppendProtocolLog(string message)
+        {
+            var formattedMessage = FormatLogMessage(message);
+            AppendSimpleLog(formattedMessage);
+            AppendAdvancedLog(formattedMessage);
         }
 
         private void LogError(string context, Exception exception)
@@ -317,6 +353,35 @@ namespace M18BatteryInfo
             var fullMessage = $"{context} Error details: {exception}";
             AppendLog(fullMessage);
             MessageBox.Show(fullMessage, "Serial Port Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        private void ApplyProtocolLoggingPreferences()
+        {
+            if (_protocol == null)
+            {
+                return;
+            }
+
+            _protocol.PrintTx = chkbxTXLog.Checked;
+            _protocol.PrintRx = chkboxRxLog.Checked;
+            _protocol.TxLogger = AppendProtocolLog;
+            _protocol.RxLogger = AppendProtocolLog;
+        }
+
+        private void chkbxTXLog_CheckedChanged(object? sender, EventArgs e)
+        {
+            if (_protocol != null)
+            {
+                _protocol.PrintTx = chkbxTXLog.Checked;
+            }
+        }
+
+        private void chkboxRxLog_CheckedChanged(object? sender, EventArgs e)
+        {
+            if (_protocol != null)
+            {
+                _protocol.PrintRx = chkboxRxLog.Checked;
+            }
         }
 
         private void rtbOutput_TextChanged(object sender, EventArgs e)

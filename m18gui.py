@@ -1,7 +1,10 @@
+"""Tkinter-based GUI wrapper around the :mod:`m18` protocol module."""
+
 import sys, subprocess, threading, io, time, traceback, tkinter as tk
 from tkinter import ttk, messagebox
 
 def ensure_module(mod_name, pip_name):
+    """Import ``mod_name``, installing ``pip_name`` via pip if missing."""
     try: __import__(mod_name)
     except ImportError:
         root = tk.Tk(); root.title("Installing dependencies")
@@ -17,6 +20,7 @@ from serial.tools import list_ports
 import m18
 
 class M18GUI(tk.Tk):
+    """Simple desktop interface for performing common M18 operations."""
     def __init__(self):
         super().__init__()
         self.title("M18 Protocol GUI")
@@ -37,6 +41,7 @@ class M18GUI(tk.Tk):
         self.update_profile_display()
 
     def create_widgets(self):
+        """Build all tabs, controls, and shared output areas."""
         self.notebook = ttk.Notebook(self); self.notebook.pack(fill="both", expand=True, padx=0, pady=0)
         self.main_tab, self.console_tab, self.sim_tab, self.about_tab = (ttk.Frame(self.notebook) for _ in range(4))
         self.notebook.add(self.main_tab, text="Main Controls"); self.notebook.add(self.console_tab, text="Interactive Console")
@@ -118,20 +123,34 @@ class M18GUI(tk.Tk):
             table.insert("", "end", values=(addr,desc))
 
     # -------- Utility / Port / Logging ----------
-    def log(self, text, clear=False): self.output_text.delete("1.0", tk.END) if clear else None; self.output_text.insert(tk.END, text + "\n"); self.output_text.see(tk.END)
-    def sim_log(self, text): self.log(f"[SIM] {text}")
-    def set_status(self, text): self.status_var.set(text)
+    def log(self, text, clear=False):
+        """Append ``text`` to the shared output area, optionally clearing it."""
+        self.output_text.delete("1.0", tk.END) if clear else None; self.output_text.insert(tk.END, text + "\n"); self.output_text.see(tk.END)
+
+    def sim_log(self, text):
+        """Prefix simulation messages to distinguish them in the log area."""
+        self.log(f"[SIM] {text}")
+
+    def set_status(self, text):
+        """Update the status label at the top of the UI."""
+        self.status_var.set(text)
+
     def refresh_ports(self):
+        """Enumerate available serial ports and repopulate the dropdown."""
         ports = list_ports.comports(); names = []; self.port_map.clear()
         for p in ports:
             label = f"{p.device} — {p.description} ({getattr(p,'manufacturer','') or ''})".strip()
             names.append(label); self.port_map[label] = p.device
         self.port_combo["values"] = names; self.port_combo.current(0) if names else self.port_combo.set("")
         self.set_status("Ports refreshed")
+
     def require_connection(self):
+        """Warn the user if no device is connected before running an action."""
         if self.m18_obj is None: messagebox.showwarning("Not connected", "Please connect to a port first."); return False
         return True
+
     def capture_output(self, func, *a, **k):
+        """Run ``func`` while capturing stdout into a string."""
         buf, old = io.StringIO(), sys.stdout
         try: sys.stdout = buf; func(*a, **k)
         finally: sys.stdout = old
@@ -139,6 +158,7 @@ class M18GUI(tk.Tk):
 
     # --------- Connect/Disconnect -----------
     def connect_device(self):
+        """Instantiate :class:`m18.M18` using the selected serial port."""
         sel = self.port_var.get()
         port = self.port_map.get(sel, sel)
         try: self.m18_obj = m18.M18(port)
@@ -150,8 +170,9 @@ class M18GUI(tk.Tk):
         for b in [self.disconnect_btn, self.idle_btn, self.health_btn, self.clipboard_btn, self.sim_start_btn]: b.configure(state="normal")
 
     def disconnect_device(self):
+        """Return the pack to idle, close the port, and reset UI state."""
         self.stop_simulation()
-        if self.m18_obj: 
+        if self.m18_obj:
             try: self.m18_obj.idle()
             except: pass
             try: self.m18_obj.port.close()
@@ -163,6 +184,7 @@ class M18GUI(tk.Tk):
 
     # ----------- Command Handlers -----------
     def cmd_idle(self):
+        """Invoke ``idle`` on the connected device in a worker thread."""
         if not self.require_connection(): return
         def work():
             try:
@@ -174,6 +196,7 @@ class M18GUI(tk.Tk):
         threading.Thread(target=work, daemon=True).start()
 
     def cmd_health(self):
+        """Run ``health`` and display captured output."""
         if not self.require_connection(): return
         def work():
             try:
@@ -188,6 +211,7 @@ class M18GUI(tk.Tk):
         threading.Thread(target=work, daemon=True).start()
 
     def cmd_clipboard(self):
+        """Copy all register values to the clipboard."""
         if not self.require_connection(): return
         def work():
             try:
@@ -203,6 +227,7 @@ class M18GUI(tk.Tk):
 
     # ---------- Interactive Console ----------
     def run_console_code(self):
+        """Execute arbitrary Python with the M18 object available as ``m``."""
         code = self.console_text.get("1.0", tk.END).strip()
         if not code: messagebox.showinfo("No code", "Please enter some code."); return
         if not self.require_connection(): return
@@ -224,6 +249,7 @@ class M18GUI(tk.Tk):
     # ---------- Profile Display ----------
     def on_profile_changed(self, event=None): self.update_profile_display()
     def update_profile_display(self):
+        """Show human readable info about the selected simulation profile."""
         p = self.sim_profile_var.get()
         if p in self.sim_profiles:
             c, m = self.sim_profiles[p]
@@ -231,6 +257,7 @@ class M18GUI(tk.Tk):
             self.profile_info_var.set(info)
         else: self.profile_info_var.set("Custom profile: adjust fields below.")
     def get_profile_currents(self):
+        """Return cutoff and max currents based on profile or custom fields."""
         p = self.sim_profile_var.get()
         if p in self.sim_profiles: return self.sim_profiles[p]
         try:
@@ -242,6 +269,7 @@ class M18GUI(tk.Tk):
 
     # ---------- Simulation ----------
     def start_simulation(self):
+        """Spawn a background thread to perform the charging dialogue."""
         if not self.require_connection(): return
         if self.sim_thread and self.sim_thread.is_alive():
             messagebox.showinfo("Running", "Simulation already running."); return
@@ -288,6 +316,7 @@ class M18GUI(tk.Tk):
         )
 
     def stop_simulation(self):
+        """Signal the simulation worker to exit."""
         if self.sim_stop_event:
             self.sim_stop_event.set()
 
@@ -301,6 +330,7 @@ class M18GUI(tk.Tk):
         max_raw,
         max_amps,
     ):
+        """Perform the scripted keepalive dialogue for the configured duration."""
         m = self.m18_obj
         if m is None:
             self.after(

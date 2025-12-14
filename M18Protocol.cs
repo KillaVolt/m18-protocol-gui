@@ -32,6 +32,7 @@ namespace M18BatteryInfo
         public bool PrintRx { get; set; }
 
         private readonly SerialPort _port;
+        private bool _disposed;
 
         public M18Protocol(string portName)
         {
@@ -44,6 +45,9 @@ namespace M18BatteryInfo
             _port.Open();
             Idle();
         }
+
+        public string PortName => _port.PortName;
+        public bool IsOpen => _port.IsOpen;
 
         public byte ReverseBits(byte value)
         {
@@ -203,6 +207,48 @@ namespace M18BatteryInfo
         {
             _port.BreakState = false;
             _port.DtrEnable = false;
+        }
+
+        public string HealthReport()
+        {
+            var builder = new StringBuilder();
+
+            builder.AppendLine($"Port: {_port.PortName}");
+            builder.AppendLine($"Port open: {_port.IsOpen}");
+            builder.AppendLine("Basic health report functionality is limited in this build.");
+            builder.AppendLine("Connect to a battery pack to retrieve detailed statistics.");
+
+            return builder.ToString().TrimEnd();
+        }
+
+        public void Close()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+
+            try
+            {
+                Idle();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                _port.Close();
+            }
+            catch
+            {
+            }
+            finally
+            {
+                _port.Dispose();
+            }
         }
 
         public byte[] Cmd(byte addrMsb, byte addrLsb, byte length, byte command = 0x01)

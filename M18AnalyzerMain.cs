@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO.Ports;
 using System.Linq;
+using System.Management;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -28,6 +29,7 @@ namespace M18BatteryInfo
             btnCopyOutput.Click += btnCopyOutput_Click;
             chkbxTXLog.CheckedChanged += chkbxTXLog_CheckedChanged;
             chkboxRxLog.CheckedChanged += chkboxRxLog_CheckedChanged;
+            btnTestFT232.Click += btnTestFT232_Click;
 
             chkbxTXLog.Checked = true;
             chkboxRxLog.Checked = true;
@@ -88,18 +90,16 @@ namespace M18BatteryInfo
 
             try
             {
-                var portDescriptions = GetPortDescriptions();
-                var portNames = SerialPort.GetPortNames().OrderBy(port => port, StringComparer.OrdinalIgnoreCase).ToList();
+                var ports = GetSerialPortInfos();
 
                 cmbBxSerialPort.Items.Clear();
-                foreach (var port in portNames)
+                foreach (var port in ports)
                 {
-                    portDescriptions.TryGetValue(port, out var description);
-                    cmbBxSerialPort.Items.Add(new SerialPortDisplay(port, description));
-                    AppendLog($"Found port {port}{(string.IsNullOrWhiteSpace(description) ? string.Empty : $" - {description}")}");
+                    cmbBxSerialPort.Items.Add(port);
+                    AppendLog($"Found port {port.DisplayName}{(port.IsLikelyFtdi ? " (FTDI detected)" : string.Empty)}");
                 }
 
-                if (portNames.Count == 0)
+                if (ports.Count == 0)
                 {
                     AppendLog("No serial ports detected.");
                 }
@@ -137,18 +137,18 @@ namespace M18BatteryInfo
                 await DisconnectAsync();
             }
 
-            AppendLog($"Attempting to open {selectedPort} with settings: 4800 baud, 8 data bits, parity None, stop bits One, handshake None.");
+            AppendLog($"Attempting to open {selectedPort.DisplayName} with settings: 4800 baud, 8 data bits, parity None, stop bits One, handshake None.");
 
             try
             {
                 await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName));
                 ApplyProtocolLoggingPreferences();
-                AppendLog($"{selectedPort} opened successfully.");
+                AppendLog($"{selectedPort.DisplayName} opened successfully.");
             }
             catch (Exception ex)
             {
                 _protocol = null;
-                LogError($"Failed to open {selectedPort}.", ex);
+                LogError($"Failed to open {selectedPort.DisplayName}.", ex);
             }
         }
 
@@ -274,39 +274,134 @@ namespace M18BatteryInfo
             return false;
         }
 
-        private Dictionary<string, string> GetPortDescriptions()
+        private List<SerialPortDisplay> GetSerialPortInfos()
         {
-            var descriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var portLookup = new Dictionary<string, SerialPortDisplay>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var portName in SerialPort.GetPortNames())
+            {
+                portLookup[portName] = new SerialPortDisplay(portName, null, null, null);
+            }
 
             try
             {
-                using var searcher = new System.Management.ManagementObjectSearcher("SELECT Caption, DeviceID FROM Win32_PnPEntity WHERE Caption LIKE 'COM%' OR DeviceID LIKE 'COM%'");
-                foreach (var obj in searcher.Get().OfType<System.Management.ManagementObject>())
+                using var serialSearcher = new ManagementObjectSearcher("SELECT DeviceID, Description, Manufacturer, Name FROM Win32_SerialPort");
+                foreach (var obj in serialSearcher.Get().OfType<ManagementObject>())
                 {
-                    var caption = obj["Caption"]?.ToString();
-                    var deviceId = obj["DeviceID"]?.ToString();
-
-                    if (string.IsNullOrWhiteSpace(caption) && string.IsNullOrWhiteSpace(deviceId))
+                    var portName = ExtractPortName(obj["DeviceID"]?.ToString());
+                    if (string.IsNullOrWhiteSpace(portName))
                     {
                         continue;
                     }
 
-                    var combined = caption ?? deviceId ?? string.Empty;
-                    var match = System.Text.RegularExpressions.Regex.Match(combined, @"\((COM\d+)\)");
-                    var portName = match.Success ? match.Groups[1].Value : SerialPort.GetPortNames().FirstOrDefault(name => combined.Contains(name, StringComparison.OrdinalIgnoreCase));
-
-                    if (!string.IsNullOrWhiteSpace(portName) && !descriptions.ContainsKey(portName))
-                    {
-                        descriptions[portName] = caption ?? deviceId ?? portName;
-                    }
+                    portLookup[portName] = portLookup.GetValueOrDefault(portName, new SerialPortDisplay(portName, null, null, null))
+                        with
+                        {
+                            Description = obj["Description"]?.ToString(),
+                            Manufacturer = obj["Manufacturer"]?.ToString(),
+                            FriendlyName = obj["Name"]?.ToString()
+                        };
                 }
             }
             catch (Exception ex)
             {
-                LogError("Failed to read port descriptions.", ex);
+                LogError("Failed to read serial port details.", ex);
             }
 
-            return descriptions;
+            try
+            {
+                using var pnpSearcher = new ManagementObjectSearcher("SELECT DeviceID, Caption, Manufacturer, Name FROM Win32_PnPEntity WHERE Caption LIKE 'COM%' OR DeviceID LIKE 'COM%'");
+                foreach (var obj in pnpSearcher.Get().OfType<ManagementObject>())
+                {
+                    var portName = ExtractPortName(obj["Caption"]?.ToString()) ?? ExtractPortName(obj["DeviceID"]?.ToString());
+                    if (string.IsNullOrWhiteSpace(portName))
+                    {
+                        continue;
+                    }
+
+                    var existing = portLookup.GetValueOrDefault(portName, new SerialPortDisplay(portName, null, null, null));
+                    portLookup[portName] = existing with
+                    {
+                        Description = existing.Description ?? obj["Caption"]?.ToString(),
+                        Manufacturer = existing.Manufacturer ?? obj["Manufacturer"]?.ToString(),
+                        FriendlyName = existing.FriendlyName ?? obj["Name"]?.ToString()
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                LogError("Failed to read plug-and-play port details.", ex);
+            }
+
+            return portLookup.Values
+                .OrderBy(port => port.PortName, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static string? ExtractPortName(string? source)
+        {
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                return null;
+            }
+
+            var match = System.Text.RegularExpressions.Regex.Match(source, @"(COM\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value.ToUpperInvariant() : null;
+        }
+
+        private async void btnTestFT232_Click(object? sender, EventArgs e)
+        {
+            LogDebugAction("Requesting Test FT232 operation.");
+
+            if (cmbBxSerialPort.SelectedItem is not SerialPortDisplay selectedPort)
+            {
+                AppendLog("No serial port selected. Please choose a port before testing.");
+                MessageBox.Show("Please select a serial port before testing.", "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            AppendLog($"Testing FT232 on {selectedPort.DisplayName}...");
+            LogDebugAction($"Testing FT232 on {selectedPort.DisplayName}.");
+
+            var testResult = await Task.Run(() => TestSerialDevice(selectedPort));
+
+            if (testResult.Success)
+            {
+                AppendLog($"Device responded successfully on {selectedPort.PortName}.");
+                LogDebugAction($"Device responded successfully on {selectedPort.PortName}.");
+            }
+            else
+            {
+                AppendLog($"No response / failed to communicate with device on {selectedPort.PortName}{(string.IsNullOrWhiteSpace(testResult.ErrorMessage) ? string.Empty : $": {testResult.ErrorMessage}")}.");
+                LogDebugAction($"No response / failed to communicate with device on {selectedPort.PortName}{(string.IsNullOrWhiteSpace(testResult.ErrorMessage) ? string.Empty : $": {testResult.ErrorMessage}")}.");
+            }
+        }
+
+        private static (bool Success, string? ErrorMessage) TestSerialDevice(SerialPortDisplay port)
+        {
+            try
+            {
+                using var serialPort = new SerialPort(port.PortName, 4800, Parity.None, 8, StopBits.Two)
+                {
+                    ReadTimeout = 500,
+                    WriteTimeout = 500,
+                    DtrEnable = true,
+                    RtsEnable = true
+                };
+
+                serialPort.Open();
+
+                serialPort.DtrEnable = !serialPort.DtrEnable;
+                serialPort.RtsEnable = !serialPort.RtsEnable;
+
+                serialPort.Write(new byte[] { 0x00 }, 0, 1);
+
+                return (true, null);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
         }
 
         private void AppendLog(string message)
@@ -418,11 +513,39 @@ namespace M18BatteryInfo
 
         }
 
-        private sealed record SerialPortDisplay(string PortName, string? Description)
+        private sealed record SerialPortDisplay(string PortName, string? Description, string? Manufacturer, string? FriendlyName)
         {
+            public string DisplayName
+            {
+                get
+                {
+                    var parts = new List<string> { PortName };
+
+                    if (!string.IsNullOrWhiteSpace(Manufacturer))
+                    {
+                        parts.Add(Manufacturer);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(Description) && !parts.Contains(Description))
+                    {
+                        parts.Add(Description);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(FriendlyName) && !parts.Contains(FriendlyName))
+                    {
+                        parts.Add(FriendlyName);
+                    }
+
+                    return string.Join(" — ", parts);
+                }
+            }
+
+            public bool IsLikelyFtdi => new[] { Description, Manufacturer, FriendlyName }
+                .Any(value => value != null && value.IndexOf("FTDI", StringComparison.OrdinalIgnoreCase) >= 0);
+
             public override string ToString()
             {
-                return string.IsNullOrWhiteSpace(Description) ? PortName : $"{PortName} - {Description}";
+                return DisplayName;
             }
         }
     }

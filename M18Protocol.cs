@@ -28,8 +28,11 @@ namespace M18BatteryInfo
 
         public int Acc { get; private set; } = 4;
 
-        public bool PrintTx { get; set; }
-        public bool PrintRx { get; set; }
+        public bool PrintTx { get; set; } = true;
+        public bool PrintRx { get; set; } = true;
+
+        public Action<string>? TxLogger { get; set; }
+        public Action<string>? RxLogger { get; set; }
 
         private readonly SerialPort _port;
         private bool _disposed;
@@ -116,7 +119,9 @@ namespace M18BatteryInfo
                     }
                 }
 
-                Console.WriteLine($"TX: {builder}");
+                var logMessage = $"TX: {builder}";
+                TxLogger?.Invoke(logMessage);
+                Console.WriteLine(logMessage);
             }
 
             _port.Write(msb, 0, msb.Length);
@@ -166,7 +171,9 @@ namespace M18BatteryInfo
                     }
                 }
 
-                Console.WriteLine($"RX: {builder}");
+                var logMessage = $"RX: {builder}";
+                RxLogger?.Invoke(logMessage);
+                Console.WriteLine(logMessage);
             }
 
             return lsbResponse;

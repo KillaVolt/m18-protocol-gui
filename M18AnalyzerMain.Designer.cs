@@ -505,18 +505,22 @@
             btnSaveTxRxState.UseVisualStyleBackColor = true;
             // 
             // chkboxRxLog
-            // 
+            //
             chkboxRxLog.AutoSize = true;
+            chkboxRxLog.Checked = true;
+            chkboxRxLog.CheckState = CheckState.Checked;
             chkboxRxLog.Location = new Point(736, 376);
             chkboxRxLog.Name = "chkboxRxLog";
             chkboxRxLog.Size = new Size(149, 29);
             chkboxRxLog.TabIndex = 8;
             chkboxRxLog.Text = "Enable Rx Log";
             chkboxRxLog.UseVisualStyleBackColor = true;
-            // 
+            //
             // chkbxTXLog
-            // 
+            //
             chkbxTXLog.AutoSize = true;
+            chkbxTXLog.Checked = true;
+            chkbxTXLog.CheckState = CheckState.Checked;
             chkbxTXLog.Location = new Point(576, 376);
             chkbxTXLog.Name = "chkbxTXLog";
             chkbxTXLog.Size = new Size(150, 29);

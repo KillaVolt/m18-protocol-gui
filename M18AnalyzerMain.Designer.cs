@@ -110,12 +110,12 @@
             txtOneKeyID = new TextBox();
             btnSubmitDiagForm = new Button();
             tabAbout = new TabPage();
-            lblAboutTitle = new Label();
-            toolTipSimpleTab = new ToolTip(components);
-            lblMartin = new Label();
-            linkLabel1 = new LinkLabel();
             linkLabel2 = new LinkLabel();
             label1 = new Label();
+            linkLabel1 = new LinkLabel();
+            lblMartin = new Label();
+            lblAboutTitle = new Label();
+            toolTipSimpleTab = new ToolTip(components);
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             grpOutput.SuspendLayout();
@@ -215,11 +215,13 @@
             // 
             // rtbOutput
             // 
+            rtbOutput.BackColor = Color.Black;
+            rtbOutput.ForeColor = Color.Lime;
             rtbOutput.Location = new Point(6, 30);
             rtbOutput.Name = "rtbOutput";
             rtbOutput.Size = new Size(714, 314);
             rtbOutput.TabIndex = 0;
-            rtbOutput.Text = "Step 1: Set Idle.\nStep 2: Connect Battery.\nStep 3: Set Active.";
+            rtbOutput.Text = "Step 1: Set Idle.\nStep 2: Connect Battery.\nStep 3: Set Active.\n";
             // 
             // btnIdle
             // 
@@ -905,41 +907,6 @@
             tabAbout.Text = "About";
             tabAbout.UseVisualStyleBackColor = true;
             // 
-            // lblAboutTitle
-            // 
-            lblAboutTitle.Font = new Font("Segoe UI Black", 26F, FontStyle.Bold | FontStyle.Italic, GraphicsUnit.Point, 0);
-            lblAboutTitle.Image = (Image)resources.GetObject("lblAboutTitle.Image");
-            lblAboutTitle.ImageAlign = ContentAlignment.MiddleLeft;
-            lblAboutTitle.Location = new Point(144, 8);
-            lblAboutTitle.Name = "lblAboutTitle";
-            lblAboutTitle.Size = new Size(632, 80);
-            lblAboutTitle.TabIndex = 0;
-            lblAboutTitle.Text = "         Pack Analyzer GUI";
-            lblAboutTitle.TextAlign = ContentAlignment.TopCenter;
-            // 
-            // lblMartin
-            // 
-            lblMartin.AutoSize = true;
-            lblMartin.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lblMartin.Location = new Point(224, 80);
-            lblMartin.Name = "lblMartin";
-            lblMartin.Size = new Size(459, 28);
-            lblMartin.TabIndex = 1;
-            lblMartin.Text = "Original M18 Protocol code by: Martin Jansson";
-            // 
-            // linkLabel1
-            // 
-            linkLabel1.AutoSize = true;
-            linkLabel1.LinkArea = new LinkArea(13, 60);
-            linkLabel1.Location = new Point(200, 112);
-            linkLabel1.Name = "linkLabel1";
-            linkLabel1.Size = new Size(514, 30);
-            linkLabel1.TabIndex = 2;
-            linkLabel1.TabStop = true;
-            linkLabel1.Text = "GitHub Repo: https://github.com/mnh-jansson/m18-protocol/";
-            linkLabel1.UseCompatibleTextRendering = true;
-            linkLabel1.LinkClicked += linkLabel1_LinkClicked;
-            // 
             // linkLabel2
             // 
             linkLabel2.AutoSize = true;
@@ -961,6 +928,41 @@
             label1.Size = new Size(258, 28);
             label1.TabIndex = 3;
             label1.Text = "GUI designed By: KillaVolt";
+            // 
+            // linkLabel1
+            // 
+            linkLabel1.AutoSize = true;
+            linkLabel1.LinkArea = new LinkArea(13, 60);
+            linkLabel1.Location = new Point(200, 112);
+            linkLabel1.Name = "linkLabel1";
+            linkLabel1.Size = new Size(514, 30);
+            linkLabel1.TabIndex = 2;
+            linkLabel1.TabStop = true;
+            linkLabel1.Text = "GitHub Repo: https://github.com/mnh-jansson/m18-protocol/";
+            linkLabel1.UseCompatibleTextRendering = true;
+            linkLabel1.LinkClicked += linkLabel1_LinkClicked;
+            // 
+            // lblMartin
+            // 
+            lblMartin.AutoSize = true;
+            lblMartin.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
+            lblMartin.Location = new Point(224, 80);
+            lblMartin.Name = "lblMartin";
+            lblMartin.Size = new Size(459, 28);
+            lblMartin.TabIndex = 1;
+            lblMartin.Text = "Original M18 Protocol code by: Martin Jansson";
+            // 
+            // lblAboutTitle
+            // 
+            lblAboutTitle.Font = new Font("Segoe UI Black", 26F, FontStyle.Bold | FontStyle.Italic, GraphicsUnit.Point, 0);
+            lblAboutTitle.Image = (Image)resources.GetObject("lblAboutTitle.Image");
+            lblAboutTitle.ImageAlign = ContentAlignment.MiddleLeft;
+            lblAboutTitle.Location = new Point(144, 8);
+            lblAboutTitle.Name = "lblAboutTitle";
+            lblAboutTitle.Size = new Size(632, 80);
+            lblAboutTitle.TabIndex = 0;
+            lblAboutTitle.Text = "         Pack Analyzer GUI";
+            lblAboutTitle.TextAlign = ContentAlignment.TopCenter;
             // 
             // frmMain
             // 

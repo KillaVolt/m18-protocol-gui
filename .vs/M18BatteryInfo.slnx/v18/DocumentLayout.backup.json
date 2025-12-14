@@ -1,0 +1,36 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\M18BatteryInfo\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{BBB8545F-DDF7-8CBB-3AB2-FA5B47E8990F}|M18BatteryInfo.csproj|e:\\m18batteryinfo\\m18analyzermain.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{BBB8545F-DDF7-8CBB-3AB2-FA5B47E8990F}|M18BatteryInfo.csproj|solutionrelative:m18analyzermain.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "M18AnalyzerMain.cs [Design]",
+              "DocumentMoniker": "E:\\M18BatteryInfo\\M18AnalyzerMain.cs",
+              "RelativeDocumentMoniker": "M18AnalyzerMain.cs",
+              "ToolTip": "E:\\M18BatteryInfo\\M18AnalyzerMain.cs [Design]",
+              "RelativeToolTip": "M18AnalyzerMain.cs [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-12-14T01:05:32.518Z",
+              "EditorCaption": " [Design]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

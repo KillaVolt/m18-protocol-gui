@@ -12,6 +12,7 @@ namespace M18BatteryInfo
         private M18Protocol? _protocol;
         private bool _hasAppendedLog;
         private bool _hasAppendedAdvancedLog;
+        private bool _hasAppendedDebugLog;
 
         public frmMain()
         {
@@ -30,6 +31,8 @@ namespace M18BatteryInfo
 
             chkbxTXLog.Checked = true;
             chkboxRxLog.Checked = true;
+
+            LogDebug("Application initialized. Default TX/RX logging enabled.");
 
             toolTipSimpleTab.SetToolTip(btnRefresh, "Refresh the list of available serial ports.");
             toolTipSimpleTab.SetToolTip(btnConnect, "Connect to the selected serial port.");
@@ -78,11 +81,13 @@ namespace M18BatteryInfo
 
         private void btnRefresh_Click(object? sender, EventArgs e)
         {
+            LogDebug("Refresh button pressed - calling RefreshSerialPorts().");
             RefreshSerialPorts();
         }
 
         private void RefreshSerialPorts()
         {
+            LogDebug("Entering RefreshSerialPorts(). Fetching available serial ports.");
             AppendLog("Refreshing serial port list...");
 
             try
@@ -90,12 +95,15 @@ namespace M18BatteryInfo
                 var portDescriptions = GetPortDescriptions();
                 var portNames = SerialPort.GetPortNames().OrderBy(port => port, StringComparer.OrdinalIgnoreCase).ToList();
 
+                LogDebug($"Detected {portNames.Count} serial port(s).");
+
                 cmbBxSerialPort.Items.Clear();
 
                 foreach (var port in portNames)
                 {
                     portDescriptions.TryGetValue(port, out var description);
                     cmbBxSerialPort.Items.Add(new SerialPortDisplay(port, description));
+                    LogDebug($"Added port to combo box: {port}{(string.IsNullOrWhiteSpace(description) ? string.Empty : $" - {description}")}");
                     AppendLog($"Found port {port}{(string.IsNullOrWhiteSpace(description) ? string.Empty : $" - {description}")}");
                 }
 
@@ -116,6 +124,7 @@ namespace M18BatteryInfo
 
         private async void btnConnect_Click(object? sender, EventArgs e)
         {
+            LogDebug("Connect button pressed - attempting to establish protocol connection.");
             if (cmbBxSerialPort.SelectedItem is not SerialPortDisplay selectedPort)
             {
                 AppendLog("No serial port selected. Please choose a port before connecting.");
@@ -140,8 +149,9 @@ namespace M18BatteryInfo
 
             try
             {
-                await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName));
+                await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName, LogDebug));
                 ApplyProtocolLoggingPreferences();
+                LogDebug($"Protocol initialized for {selectedPort.PortName}.");
                 AppendLog($"{selectedPort} opened successfully.");
             }
             catch (Exception ex)
@@ -153,11 +163,13 @@ namespace M18BatteryInfo
 
         private async void btnDisconnect_Click(object? sender, EventArgs e)
         {
+            LogDebug("Disconnect button pressed - initiating disconnect sequence.");
             await DisconnectAsync();
         }
 
         private async Task DisconnectAsync()
         {
+            LogDebug("Entering DisconnectAsync().");
             if (_protocol == null)
             {
                 AppendLog("Disconnect requested, but no serial port is currently open.");
@@ -170,6 +182,7 @@ namespace M18BatteryInfo
             try
             {
                 await Task.Run(() => _protocol.Close());
+                LogDebug("Protocol closed successfully.");
                 AppendLog($"{_protocol.PortName} closed successfully.");
             }
             catch (Exception ex)
@@ -184,6 +197,7 @@ namespace M18BatteryInfo
 
         private async void btnIdle_Click(object? sender, EventArgs e)
         {
+            LogDebug("Idle button pressed - requesting _protocol.Idle().");
             if (!EnsureConnected())
             {
                 return;
@@ -195,6 +209,7 @@ namespace M18BatteryInfo
 
         private async void btnActive_Click(object? sender, EventArgs e)
         {
+            LogDebug("Active button pressed - requesting _protocol.High().");
             if (!EnsureConnected())
             {
                 return;
@@ -206,6 +221,7 @@ namespace M18BatteryInfo
 
         private async void btnHealthReport_Click(object? sender, EventArgs e)
         {
+            LogDebug("Health Report button pressed - requesting _protocol.HealthReport().");
             if (!EnsureConnected())
             {
                 return;
@@ -226,6 +242,7 @@ namespace M18BatteryInfo
 
         private async void btnReset_Click(object? sender, EventArgs e)
         {
+            LogDebug("Reset button pressed - requesting _protocol.Reset().");
             if (!EnsureConnected())
             {
                 return;
@@ -244,6 +261,7 @@ namespace M18BatteryInfo
 
         private void btnCopyOutput_Click(object? sender, EventArgs e)
         {
+            LogDebug("Copy Output button pressed - copying rtbOutput content to clipboard.");
             if (string.IsNullOrEmpty(rtbOutput.Text))
             {
                 AppendLog("No output to copy.");
@@ -256,8 +274,10 @@ namespace M18BatteryInfo
 
         private bool EnsureConnected()
         {
+            LogDebug("Checking connection status via EnsureConnected().");
             if (_protocol != null)
             {
+                LogDebug("Protocol already connected.");
                 return true;
             }
 
@@ -268,6 +288,7 @@ namespace M18BatteryInfo
 
         private Dictionary<string, string> GetPortDescriptions()
         {
+            LogDebug("Attempting to retrieve port descriptions via WMI query.");
             var descriptions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
             try
@@ -346,12 +367,14 @@ namespace M18BatteryInfo
             var formattedMessage = FormatLogMessage(message);
             AppendSimpleLog(formattedMessage);
             AppendAdvancedLog(formattedMessage);
+            LogDebug($"Protocol log forwarded to debug output: {message}");
         }
 
         private void LogError(string context, Exception exception)
         {
             var fullMessage = $"{context} Error details: {exception}";
             AppendLog(fullMessage);
+            LogDebug(fullMessage);
             MessageBox.Show(fullMessage, "Serial Port Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
@@ -364,8 +387,18 @@ namespace M18BatteryInfo
 
             _protocol.PrintTx = chkbxTXLog.Checked;
             _protocol.PrintRx = chkboxRxLog.Checked;
-            _protocol.TxLogger = AppendProtocolLog;
-            _protocol.RxLogger = AppendProtocolLog;
+            _protocol.DebugLogger = LogDebug;
+            _protocol.TxLogger = message =>
+            {
+                AppendProtocolLog(message);
+                LogDebug($"TX log forwarded from protocol: {message}");
+            };
+            _protocol.RxLogger = message =>
+            {
+                AppendProtocolLog(message);
+                LogDebug($"RX log forwarded from protocol: {message}");
+            };
+            LogDebug($"Protocol logging preferences applied. PrintTx={_protocol.PrintTx}, PrintRx={_protocol.PrintRx}.");
         }
 
         private void chkbxTXLog_CheckedChanged(object? sender, EventArgs e)
@@ -373,6 +406,11 @@ namespace M18BatteryInfo
             if (_protocol != null)
             {
                 _protocol.PrintTx = chkbxTXLog.Checked;
+                LogDebug($"TX logging preference changed: {_protocol.PrintTx}.");
+            }
+            else
+            {
+                LogDebug($"TX logging checkbox changed to {chkbxTXLog.Checked} (protocol not initialized yet).");
             }
         }
 
@@ -381,7 +419,28 @@ namespace M18BatteryInfo
             if (_protocol != null)
             {
                 _protocol.PrintRx = chkboxRxLog.Checked;
+                LogDebug($"RX logging preference changed: {_protocol.PrintRx}.");
             }
+            else
+            {
+                LogDebug($"RX logging checkbox changed to {chkboxRxLog.Checked} (protocol not initialized yet).");
+            }
+        }
+
+        private void LogDebug(string message)
+        {
+            if (rtbDebugOutput.InvokeRequired)
+            {
+                rtbDebugOutput.Invoke(new Action(() => LogDebug(message)));
+                return;
+            }
+
+            var timestamped = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
+            var prefix = _hasAppendedDebugLog ? Environment.NewLine : string.Empty;
+            rtbDebugOutput.AppendText($"{prefix}{timestamped}");
+            rtbDebugOutput.SelectionStart = rtbDebugOutput.TextLength;
+            rtbDebugOutput.ScrollToCaret();
+            _hasAppendedDebugLog = true;
         }
 
         private void rtbOutput_TextChanged(object sender, EventArgs e)

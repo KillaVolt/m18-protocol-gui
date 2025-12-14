@@ -33,20 +33,26 @@ namespace M18BatteryInfo
 
         public Action<string>? TxLogger { get; set; }
         public Action<string>? RxLogger { get; set; }
+        public Action<string>? DebugLogger { get; set; }
 
         private readonly SerialPort _port;
         private bool _disposed;
 
-        public M18Protocol(string portName)
+        public M18Protocol(string portName, Action<string>? debugLogger = null)
         {
+            DebugLogger = debugLogger;
+            LogDebug($"Initializing protocol for port {portName}.");
             _port = new SerialPort(portName, 4800, Parity.None, 8, StopBits.Two)
             {
                 ReadTimeout = 800,
                 WriteTimeout = 800
             };
 
+            LogDebug("Opening serial port...");
             _port.Open();
+            LogDebug("Serial port opened. Setting TX to idle state.");
             Idle();
+            LogDebug("Protocol initialization complete.");
         }
 
         public string PortName => _port.PortName;
@@ -54,6 +60,7 @@ namespace M18BatteryInfo
 
         public byte ReverseBits(byte value)
         {
+            LogDebug($"ReverseBits called with value 0x{value:X2}.");
             byte reversed = 0;
             for (int i = 0; i < 8; i++)
             {
@@ -61,17 +68,26 @@ namespace M18BatteryInfo
                 reversed |= (byte)((value >> i) & 0x01);
             }
 
+            LogDebug($"ReverseBits returning 0x{reversed:X2}.");
             return reversed;
         }
 
         public int Checksum(IEnumerable<byte> payload)
         {
+            if (payload == null)
+            {
+                LogDebug("Checksum called with null payload.");
+                throw new ArgumentNullException(nameof(payload));
+            }
+
+            LogDebug("Checksum calculation started.");
             int checksum = 0;
             foreach (var b in payload)
             {
                 checksum += b & 0xFFFF;
             }
 
+            LogDebug($"Checksum calculation complete: {checksum & 0xFFFF}.");
             return checksum;
         }
 
@@ -79,9 +95,11 @@ namespace M18BatteryInfo
         {
             if (lsbCommand == null)
             {
+                LogDebug("AddChecksum called with null lsbCommand.");
                 throw new ArgumentNullException(nameof(lsbCommand));
             }
 
+            LogDebug($"AddChecksum called for payload length {lsbCommand.Length}.");
             int checksum = Checksum(lsbCommand);
             var withChecksum = new byte[lsbCommand.Length + 2];
             Buffer.BlockCopy(lsbCommand, 0, withChecksum, 0, lsbCommand.Length);
@@ -89,6 +107,7 @@ namespace M18BatteryInfo
             withChecksum[withChecksum.Length - 2] = (byte)((checksum >> 8) & 0xFF);
             withChecksum[withChecksum.Length - 1] = (byte)(checksum & 0xFF);
 
+            LogDebug($"Checksum {checksum & 0xFFFF} appended. Final payload: {FormatBytes(withChecksum)}.");
             return withChecksum;
         }
 
@@ -96,10 +115,13 @@ namespace M18BatteryInfo
         {
             if (command == null)
             {
+                LogDebug("Send called with null command.");
                 throw new ArgumentNullException(nameof(command));
             }
 
+            LogDebug($"Send called with command length {command.Length}. Raw payload: {FormatBytes(command)}.");
             _port.DiscardInBuffer();
+            LogDebug("Input buffer discarded prior to send.");
 
             var msb = new byte[command.Length];
             for (int i = 0; i < command.Length; i++)
@@ -125,15 +147,18 @@ namespace M18BatteryInfo
             }
 
             _port.Write(msb, 0, msb.Length);
+            LogDebug($"Command sent over serial: {FormatBytes(msb)} (MSB).");
         }
 
         public void SendCommand(byte[] command)
         {
+            LogDebug("SendCommand invoked.");
             Send(AddChecksum(command));
         }
 
         public byte[] ReadResponse(int size)
         {
+            LogDebug($"ReadResponse called with expected size {size}.");
             int firstByte;
             try
             {
@@ -141,23 +166,30 @@ namespace M18BatteryInfo
             }
             catch (TimeoutException)
             {
+                LogDebug("ReadResponse timed out waiting for first byte.");
                 throw new InvalidOperationException("Empty response");
             }
 
             if (firstByte < 0)
             {
+                LogDebug("ReadResponse encountered invalid first byte (<0).");
                 throw new InvalidOperationException("Empty response");
             }
 
             var msbResponse = new List<byte> { (byte)firstByte };
             int remaining = ReverseBits((byte)firstByte) == 0x82 ? 1 : Math.Max(0, size - 1);
 
+            LogDebug($"First byte received (MSB): 0x{firstByte:X2}. Calculated remaining bytes to read: {remaining}.");
+
             if (remaining > 0)
             {
+                LogDebug($"Reading remaining {remaining} byte(s) from serial port.");
                 msbResponse.AddRange(ReadAvailable(remaining));
             }
 
             var lsbResponse = msbResponse.Select(ReverseBits).ToArray();
+
+            LogDebug($"Full response received (LSB): {FormatBytes(lsbResponse)}.");
 
             if (PrintRx)
             {
@@ -181,6 +213,7 @@ namespace M18BatteryInfo
 
         public bool Reset()
         {
+            LogDebug("Reset invoked. Driving control lines to issue reset sequence.");
             Acc = 4;
 
             _port.BreakState = true;
@@ -195,29 +228,36 @@ namespace M18BatteryInfo
 
             try
             {
+                LogDebug("Awaiting reset response after SYNC byte.");
                 var response = ReadResponse(1);
-                return response.Length > 0 && response[0] == SYNC_BYTE;
+                var success = response.Length > 0 && response[0] == SYNC_BYTE;
+                LogDebug($"Reset response {(success ? "acknowledged" : "did not match expected SYNC")}.");
+                return success;
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
+                LogDebug($"Reset failed with exception: {ex.GetType().Name} - {ex.Message}");
                 return false;
             }
         }
 
         public void Idle()
         {
+            LogDebug("Setting TX to Idle (BreakState=true, DtrEnable=true).");
             _port.BreakState = true;
             _port.DtrEnable = true;
         }
 
         public void High()
         {
+            LogDebug("Setting TX to Active (BreakState=false, DtrEnable=false).");
             _port.BreakState = false;
             _port.DtrEnable = false;
         }
 
         public string HealthReport()
         {
+            LogDebug("Generating HealthReport summary.");
             var builder = new StringBuilder();
 
             builder.AppendLine($"Port: {_port.PortName}");
@@ -230,8 +270,10 @@ namespace M18BatteryInfo
 
         public void Close()
         {
+            LogDebug("Close invoked. Beginning disposal sequence.");
             if (_disposed)
             {
+                LogDebug("Close skipped because object is already disposed.");
                 return;
             }
 
@@ -241,25 +283,29 @@ namespace M18BatteryInfo
             {
                 Idle();
             }
-            catch
+            catch (Exception ex)
             {
+                LogDebug($"Error setting idle during close: {ex.GetType().Name} - {ex.Message}");
             }
 
             try
             {
                 _port.Close();
             }
-            catch
+            catch (Exception ex)
             {
+                LogDebug($"Error while closing serial port: {ex.GetType().Name} - {ex.Message}");
             }
             finally
             {
                 _port.Dispose();
+                LogDebug("Serial port disposed.");
             }
         }
 
         public byte[] Cmd(byte addrMsb, byte addrLsb, byte length, byte command = 0x01)
         {
+            LogDebug($"Cmd invoked with addrMsb=0x{addrMsb:X2}, addrLsb=0x{addrLsb:X2}, length={length}, command=0x{command:X2}.");
             SendCommand(new[]
             {
                 command,
@@ -275,6 +321,7 @@ namespace M18BatteryInfo
 
         private IEnumerable<byte> ReadAvailable(int count)
         {
+            LogDebug($"ReadAvailable attempting to read {count} byte(s).");
             var buffer = new byte[count];
             int totalRead = 0;
 
@@ -286,15 +333,46 @@ namespace M18BatteryInfo
                     if (read > 0)
                     {
                         totalRead += read;
+                        LogDebug($"Read {read} byte(s); total read so far: {totalRead}.");
                     }
                 }
                 catch (TimeoutException)
                 {
+                    LogDebug("Timeout encountered while reading available bytes.");
                     break;
                 }
             }
 
+            var result = buffer.Take(totalRead).ToArray();
+            LogDebug($"ReadAvailable returning {result.Length} byte(s): {FormatBytes(result)}.");
             return buffer.Take(totalRead).ToArray();
+        }
+
+        private void LogDebug(string message)
+        {
+            DebugLogger?.Invoke(message);
+        }
+
+        private static string FormatBytes(IEnumerable<byte> bytes)
+        {
+            if (bytes == null)
+            {
+                return string.Empty;
+            }
+
+            var builder = new StringBuilder();
+            var array = bytes.ToArray();
+
+            for (int i = 0; i < array.Length; i++)
+            {
+                builder.Append(array[i].ToString("X2"));
+                if (i < array.Length - 1)
+                {
+                    builder.Append(' ');
+                }
+            }
+
+            return builder.ToString();
         }
     }
 }

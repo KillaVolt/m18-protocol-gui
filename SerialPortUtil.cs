@@ -499,7 +499,7 @@ internal sealed record SerialPortDisplay(
     {
         if (IsLikelyFtdi)
         {
-            return "FTDI detected";
+            return "FTDI";
         }
 
         var usbParts = new List<string>();

@@ -32,6 +32,7 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             tabControlM18Main = new TabControl();
             tabSimple = new TabPage();
+            btnTestFT232 = new Button();
             grpOutput = new GroupBox();
             btnCopyOutput = new Button();
             btnReset = new Button();
@@ -117,7 +118,6 @@
             lblAboutTitle = new Label();
             toolTipSimpleTab = new ToolTip(components);
             rtbDebugOutput = new RichTextBox();
-            btnTestFT232 = new Button();
             tabControlM18Main.SuspendLayout();
             tabSimple.SuspendLayout();
             grpOutput.SuspendLayout();
@@ -138,10 +138,11 @@
             tabControlM18Main.Controls.Add(tabSimulation);
             tabControlM18Main.Controls.Add(tabDiagnostics);
             tabControlM18Main.Controls.Add(tabAbout);
-            tabControlM18Main.Location = new Point(8, 8);
+            tabControlM18Main.Location = new Point(6, 6);
+            tabControlM18Main.Margin = new Padding(2, 2, 2, 2);
             tabControlM18Main.Name = "tabControlM18Main";
             tabControlM18Main.SelectedIndex = 0;
-            tabControlM18Main.Size = new Size(908, 512);
+            tabControlM18Main.Size = new Size(762, 394);
             tabControlM18Main.TabIndex = 0;
             // 
             // tabSimple
@@ -153,13 +154,24 @@
             tabSimple.Controls.Add(btnRefresh);
             tabSimple.Controls.Add(lblSerialPort);
             tabSimple.Controls.Add(cmbBxSerialPort);
-            tabSimple.Location = new Point(4, 34);
+            tabSimple.Location = new Point(4, 29);
+            tabSimple.Margin = new Padding(2, 2, 2, 2);
             tabSimple.Name = "tabSimple";
-            tabSimple.Padding = new Padding(3);
-            tabSimple.Size = new Size(900, 474);
+            tabSimple.Padding = new Padding(2, 2, 2, 2);
+            tabSimple.Size = new Size(754, 361);
             tabSimple.TabIndex = 0;
             tabSimple.Text = "Simple";
             tabSimple.UseVisualStyleBackColor = true;
+            // 
+            // btnTestFT232
+            // 
+            btnTestFT232.Location = new Point(274, 38);
+            btnTestFT232.Margin = new Padding(2, 2, 2, 2);
+            btnTestFT232.Name = "btnTestFT232";
+            btnTestFT232.Size = new Size(90, 27);
+            btnTestFT232.TabIndex = 7;
+            btnTestFT232.Text = "Test Device";
+            btnTestFT232.UseVisualStyleBackColor = true;
             // 
             // grpOutput
             // 
@@ -169,18 +181,21 @@
             grpOutput.Controls.Add(btnActive);
             grpOutput.Controls.Add(rtbOutput);
             grpOutput.Controls.Add(btnIdle);
-            grpOutput.Location = new Point(6, 88);
+            grpOutput.Location = new Point(5, 70);
+            grpOutput.Margin = new Padding(2, 2, 2, 2);
             grpOutput.Name = "grpOutput";
-            grpOutput.Size = new Size(882, 352);
+            grpOutput.Padding = new Padding(2, 2, 2, 2);
+            grpOutput.Size = new Size(739, 282);
             grpOutput.TabIndex = 6;
             grpOutput.TabStop = false;
             grpOutput.Text = "Output";
             // 
             // btnCopyOutput
             // 
-            btnCopyOutput.Location = new Point(728, 144);
+            btnCopyOutput.Location = new Point(616, 120);
+            btnCopyOutput.Margin = new Padding(2, 2, 2, 2);
             btnCopyOutput.Name = "btnCopyOutput";
-            btnCopyOutput.Size = new Size(148, 34);
+            btnCopyOutput.Size = new Size(118, 27);
             btnCopyOutput.TabIndex = 11;
             btnCopyOutput.Text = "Copy Output";
             toolTipSimpleTab.SetToolTip(btnCopyOutput, "Send 0xAA to battery. \r\nReturn true if battery replies wih 0xAA");
@@ -188,9 +203,10 @@
             // 
             // btnReset
             // 
-            btnReset.Location = new Point(728, 304);
+            btnReset.Location = new Point(616, 248);
+            btnReset.Margin = new Padding(2, 2, 2, 2);
             btnReset.Name = "btnReset";
-            btnReset.Size = new Size(148, 34);
+            btnReset.Size = new Size(118, 27);
             btnReset.TabIndex = 10;
             btnReset.Text = "Reset";
             toolTipSimpleTab.SetToolTip(btnReset, "Send 0xAA to battery. \r\nReturn true if battery replies wih 0xAA");
@@ -198,9 +214,10 @@
             // 
             // btnHealthReport
             // 
-            btnHealthReport.Location = new Point(728, 104);
+            btnHealthReport.Location = new Point(616, 88);
+            btnHealthReport.Margin = new Padding(2, 2, 2, 2);
             btnHealthReport.Name = "btnHealthReport";
-            btnHealthReport.Size = new Size(148, 34);
+            btnHealthReport.Size = new Size(118, 27);
             btnHealthReport.TabIndex = 9;
             btnHealthReport.Text = "Health Report";
             toolTipSimpleTab.SetToolTip(btnHealthReport, "Print simple health report on the connected battery.");
@@ -208,9 +225,10 @@
             // 
             // btnActive
             // 
-            btnActive.Location = new Point(728, 64);
+            btnActive.Location = new Point(616, 56);
+            btnActive.Margin = new Padding(2, 2, 2, 2);
             btnActive.Name = "btnActive";
-            btnActive.Size = new Size(148, 34);
+            btnActive.Size = new Size(118, 27);
             btnActive.TabIndex = 8;
             btnActive.Text = "Active (Tx High)";
             toolTipSimpleTab.SetToolTip(btnActive, "Charger simulation active.\r\nMay increase battery charge counter.\r\nNot safe to connect or disconnect battery during this state.");
@@ -220,18 +238,20 @@
             // 
             rtbOutput.BackColor = Color.Black;
             rtbOutput.ForeColor = Color.Lime;
-            rtbOutput.Location = new Point(6, 30);
+            rtbOutput.Location = new Point(5, 24);
+            rtbOutput.Margin = new Padding(2, 2, 2, 2);
             rtbOutput.Name = "rtbOutput";
-            rtbOutput.Size = new Size(714, 314);
+            rtbOutput.Size = new Size(603, 252);
             rtbOutput.TabIndex = 0;
             rtbOutput.Text = resources.GetString("rtbOutput.Text");
             rtbOutput.TextChanged += rtbOutput_TextChanged;
             // 
             // btnIdle
             // 
-            btnIdle.Location = new Point(728, 24);
+            btnIdle.Location = new Point(616, 24);
+            btnIdle.Margin = new Padding(2, 2, 2, 2);
             btnIdle.Name = "btnIdle";
-            btnIdle.Size = new Size(148, 34);
+            btnIdle.Size = new Size(118, 27);
             btnIdle.TabIndex = 7;
             btnIdle.Text = "Idle (Tx Low)";
             toolTipSimpleTab.SetToolTip(btnIdle, "Does not increase charge count.\r\nSafe to connect or disconnect battery.");
@@ -239,18 +259,20 @@
             // 
             // btnDisconnect
             // 
-            btnDisconnect.Location = new Point(464, 48);
+            btnDisconnect.Location = new Point(371, 38);
+            btnDisconnect.Margin = new Padding(2, 2, 2, 2);
             btnDisconnect.Name = "btnDisconnect";
-            btnDisconnect.Size = new Size(112, 34);
+            btnDisconnect.Size = new Size(90, 27);
             btnDisconnect.TabIndex = 5;
             btnDisconnect.Text = "Disconnect";
             btnDisconnect.UseVisualStyleBackColor = true;
             // 
             // btnConnect
             // 
-            btnConnect.Location = new Point(224, 48);
+            btnConnect.Location = new Point(179, 38);
+            btnConnect.Margin = new Padding(2, 2, 2, 2);
             btnConnect.Name = "btnConnect";
-            btnConnect.Size = new Size(112, 34);
+            btnConnect.Size = new Size(90, 27);
             btnConnect.TabIndex = 4;
             btnConnect.Text = "Connect";
             toolTipSimpleTab.SetToolTip(btnConnect, "Connect to the selected serial port.");
@@ -258,9 +280,10 @@
             // 
             // btnRefresh
             // 
-            btnRefresh.Location = new Point(104, 48);
+            btnRefresh.Location = new Point(83, 38);
+            btnRefresh.Margin = new Padding(2, 2, 2, 2);
             btnRefresh.Name = "btnRefresh";
-            btnRefresh.Size = new Size(112, 34);
+            btnRefresh.Size = new Size(90, 27);
             btnRefresh.TabIndex = 3;
             btnRefresh.Text = "Refresh";
             toolTipSimpleTab.SetToolTip(btnRefresh, "Refresh the serial port list.");
@@ -269,18 +292,20 @@
             // lblSerialPort
             // 
             lblSerialPort.AutoSize = true;
-            lblSerialPort.Location = new Point(6, 14);
+            lblSerialPort.Location = new Point(5, 11);
+            lblSerialPort.Margin = new Padding(2, 0, 2, 0);
             lblSerialPort.Name = "lblSerialPort";
-            lblSerialPort.Size = new Size(95, 25);
+            lblSerialPort.Size = new Size(79, 20);
             lblSerialPort.TabIndex = 2;
             lblSerialPort.Text = "Serial Port:";
             // 
             // cmbBxSerialPort
             // 
             cmbBxSerialPort.FormattingEnabled = true;
-            cmbBxSerialPort.Location = new Point(107, 11);
+            cmbBxSerialPort.Location = new Point(86, 9);
+            cmbBxSerialPort.Margin = new Padding(2, 2, 2, 2);
             cmbBxSerialPort.Name = "cmbBxSerialPort";
-            cmbBxSerialPort.Size = new Size(781, 33);
+            cmbBxSerialPort.Size = new Size(626, 28);
             cmbBxSerialPort.TabIndex = 1;
             // 
             // tabAdvanced
@@ -300,19 +325,21 @@
             tabAdvanced.Controls.Add(btnReadAllSpreadsheet);
             tabAdvanced.Controls.Add(btnReadAllRegisters);
             tabAdvanced.Controls.Add(rtbAdvOutput);
-            tabAdvanced.Location = new Point(4, 34);
+            tabAdvanced.Location = new Point(4, 29);
+            tabAdvanced.Margin = new Padding(2, 2, 2, 2);
             tabAdvanced.Name = "tabAdvanced";
-            tabAdvanced.Padding = new Padding(3);
-            tabAdvanced.Size = new Size(900, 474);
+            tabAdvanced.Padding = new Padding(2, 2, 2, 2);
+            tabAdvanced.Size = new Size(754, 361);
             tabAdvanced.TabIndex = 1;
             tabAdvanced.Text = "Advanced";
             tabAdvanced.UseVisualStyleBackColor = true;
             // 
             // btnRestoreTxRxState
             // 
-            btnRestoreTxRxState.Location = new Point(8, 248);
+            btnRestoreTxRxState.Location = new Point(6, 198);
+            btnRestoreTxRxState.Margin = new Padding(2, 2, 2, 2);
             btnRestoreTxRxState.Name = "btnRestoreTxRxState";
-            btnRestoreTxRxState.Size = new Size(208, 34);
+            btnRestoreTxRxState.Size = new Size(166, 27);
             btnRestoreTxRxState.TabIndex = 15;
             btnRestoreTxRxState.Text = "Restore TxRx State";
             btnRestoreTxRxState.UseVisualStyleBackColor = true;
@@ -327,75 +354,85 @@
             grpTryCmd.Controls.Add(lblAddrHigh);
             grpTryCmd.Controls.Add(lblCommand);
             grpTryCmd.Controls.Add(txtCommand);
-            grpTryCmd.Location = new Point(560, 8);
+            grpTryCmd.Location = new Point(448, 6);
+            grpTryCmd.Margin = new Padding(2, 2, 2, 2);
             grpTryCmd.Name = "grpTryCmd";
-            grpTryCmd.Size = new Size(328, 184);
+            grpTryCmd.Padding = new Padding(2, 2, 2, 2);
+            grpTryCmd.Size = new Size(262, 147);
             grpTryCmd.TabIndex = 14;
             grpTryCmd.TabStop = false;
             grpTryCmd.Text = "Try Command";
             // 
             // txtTryCmdLength
             // 
-            txtTryCmdLength.Location = new Point(160, 144);
+            txtTryCmdLength.Location = new Point(128, 115);
+            txtTryCmdLength.Margin = new Padding(2, 2, 2, 2);
             txtTryCmdLength.Name = "txtTryCmdLength";
-            txtTryCmdLength.Size = new Size(160, 31);
+            txtTryCmdLength.Size = new Size(129, 27);
             txtTryCmdLength.TabIndex = 14;
             // 
             // txtAddressLow
             // 
-            txtAddressLow.Location = new Point(160, 104);
+            txtAddressLow.Location = new Point(128, 83);
+            txtAddressLow.Margin = new Padding(2, 2, 2, 2);
             txtAddressLow.Name = "txtAddressLow";
-            txtAddressLow.Size = new Size(160, 31);
+            txtAddressLow.Size = new Size(129, 27);
             txtAddressLow.TabIndex = 13;
             // 
             // txtAddressHigh
             // 
-            txtAddressHigh.Location = new Point(160, 64);
+            txtAddressHigh.Location = new Point(128, 51);
+            txtAddressHigh.Margin = new Padding(2, 2, 2, 2);
             txtAddressHigh.Name = "txtAddressHigh";
-            txtAddressHigh.Size = new Size(160, 31);
+            txtAddressHigh.Size = new Size(129, 27);
             txtAddressHigh.TabIndex = 12;
             // 
             // lblTryCmdLength
             // 
             lblTryCmdLength.AutoSize = true;
-            lblTryCmdLength.Location = new Point(8, 152);
+            lblTryCmdLength.Location = new Point(6, 122);
+            lblTryCmdLength.Margin = new Padding(2, 0, 2, 0);
             lblTryCmdLength.Name = "lblTryCmdLength";
-            lblTryCmdLength.Size = new Size(66, 25);
+            lblTryCmdLength.Size = new Size(54, 20);
             lblTryCmdLength.TabIndex = 11;
             lblTryCmdLength.Text = "Length";
             // 
             // lblAddressLow
             // 
             lblAddressLow.AutoSize = true;
-            lblAddressLow.Location = new Point(8, 112);
+            lblAddressLow.Location = new Point(6, 90);
+            lblAddressLow.Margin = new Padding(2, 0, 2, 0);
             lblAddressLow.Name = "lblAddressLow";
-            lblAddressLow.Size = new Size(114, 25);
+            lblAddressLow.Size = new Size(93, 20);
             lblAddressLow.TabIndex = 10;
             lblAddressLow.Text = "Address Low";
             // 
             // lblAddrHigh
             // 
             lblAddrHigh.AutoSize = true;
-            lblAddrHigh.Location = new Point(8, 72);
+            lblAddrHigh.Location = new Point(6, 58);
+            lblAddrHigh.Margin = new Padding(2, 0, 2, 0);
             lblAddrHigh.Name = "lblAddrHigh";
-            lblAddrHigh.Size = new Size(120, 25);
+            lblAddrHigh.Size = new Size(98, 20);
             lblAddrHigh.TabIndex = 9;
             lblAddrHigh.Text = "Address High";
             // 
             // lblCommand
             // 
             lblCommand.AutoSize = true;
-            lblCommand.Location = new Point(8, 32);
+            lblCommand.Location = new Point(6, 26);
+            lblCommand.Margin = new Padding(2, 0, 2, 0);
             lblCommand.Name = "lblCommand";
-            lblCommand.Size = new Size(96, 25);
+            lblCommand.Size = new Size(78, 20);
             lblCommand.TabIndex = 8;
             lblCommand.Text = "Command";
             // 
             // txtCommand
             // 
-            txtCommand.Location = new Point(160, 24);
+            txtCommand.Location = new Point(128, 19);
+            txtCommand.Margin = new Padding(2, 2, 2, 2);
             txtCommand.Name = "txtCommand";
-            txtCommand.Size = new Size(160, 31);
+            txtCommand.Size = new Size(129, 27);
             txtCommand.TabIndex = 7;
             // 
             // grpbxDebugCmd
@@ -408,40 +445,46 @@
             grpbxDebugCmd.Controls.Add(lblLSB);
             grpbxDebugCmd.Controls.Add(lblMSB);
             grpbxDebugCmd.Controls.Add(txtAddrMSB);
-            grpbxDebugCmd.Location = new Point(224, 8);
+            grpbxDebugCmd.Location = new Point(179, 6);
+            grpbxDebugCmd.Margin = new Padding(2, 2, 2, 2);
             grpbxDebugCmd.Name = "grpbxDebugCmd";
-            grpbxDebugCmd.Size = new Size(328, 184);
+            grpbxDebugCmd.Padding = new Padding(2, 2, 2, 2);
+            grpbxDebugCmd.Size = new Size(262, 147);
             grpbxDebugCmd.TabIndex = 13;
             grpbxDebugCmd.TabStop = false;
             grpbxDebugCmd.Text = "Debug Command";
             // 
             // txtResponseLength
             // 
-            txtResponseLength.Location = new Point(160, 144);
+            txtResponseLength.Location = new Point(128, 115);
+            txtResponseLength.Margin = new Padding(2, 2, 2, 2);
             txtResponseLength.Name = "txtResponseLength";
-            txtResponseLength.Size = new Size(160, 31);
+            txtResponseLength.Size = new Size(129, 27);
             txtResponseLength.TabIndex = 14;
             // 
             // txtDebugCmdLength
             // 
-            txtDebugCmdLength.Location = new Point(160, 104);
+            txtDebugCmdLength.Location = new Point(128, 83);
+            txtDebugCmdLength.Margin = new Padding(2, 2, 2, 2);
             txtDebugCmdLength.Name = "txtDebugCmdLength";
-            txtDebugCmdLength.Size = new Size(160, 31);
+            txtDebugCmdLength.Size = new Size(129, 27);
             txtDebugCmdLength.TabIndex = 13;
             // 
             // txtAddrLSB
             // 
-            txtAddrLSB.Location = new Point(160, 64);
+            txtAddrLSB.Location = new Point(128, 51);
+            txtAddrLSB.Margin = new Padding(2, 2, 2, 2);
             txtAddrLSB.Name = "txtAddrLSB";
-            txtAddrLSB.Size = new Size(160, 31);
+            txtAddrLSB.Size = new Size(129, 27);
             txtAddrLSB.TabIndex = 12;
             // 
             // lblResponseLength
             // 
             lblResponseLength.AutoSize = true;
-            lblResponseLength.Location = new Point(8, 144);
+            lblResponseLength.Location = new Point(6, 115);
+            lblResponseLength.Margin = new Padding(2, 0, 2, 0);
             lblResponseLength.Name = "lblResponseLength";
-            lblResponseLength.Size = new Size(147, 25);
+            lblResponseLength.Size = new Size(121, 20);
             lblResponseLength.TabIndex = 11;
             lblResponseLength.Text = "Response Length";
             lblResponseLength.Click += lblResponseLength_Click;
@@ -449,60 +492,67 @@
             // lblDebugCmdLength
             // 
             lblDebugCmdLength.AutoSize = true;
-            lblDebugCmdLength.Location = new Point(8, 112);
+            lblDebugCmdLength.Location = new Point(6, 90);
+            lblDebugCmdLength.Margin = new Padding(2, 0, 2, 0);
             lblDebugCmdLength.Name = "lblDebugCmdLength";
-            lblDebugCmdLength.Size = new Size(66, 25);
+            lblDebugCmdLength.Size = new Size(54, 20);
             lblDebugCmdLength.TabIndex = 10;
             lblDebugCmdLength.Text = "Length";
             // 
             // lblLSB
             // 
             lblLSB.AutoSize = true;
-            lblLSB.Location = new Point(8, 72);
+            lblLSB.Location = new Point(6, 58);
+            lblLSB.Margin = new Padding(2, 0, 2, 0);
             lblLSB.Name = "lblLSB";
-            lblLSB.Size = new Size(110, 25);
+            lblLSB.Size = new Size(90, 20);
             lblLSB.TabIndex = 9;
             lblLSB.Text = "LSB Address";
             // 
             // lblMSB
             // 
             lblMSB.AutoSize = true;
-            lblMSB.Location = new Point(8, 32);
+            lblMSB.Location = new Point(6, 26);
+            lblMSB.Margin = new Padding(2, 0, 2, 0);
             lblMSB.Name = "lblMSB";
-            lblMSB.Size = new Size(118, 25);
+            lblMSB.Size = new Size(96, 20);
             lblMSB.TabIndex = 8;
             lblMSB.Text = "MSB Address";
             // 
             // txtAddrMSB
             // 
-            txtAddrMSB.Location = new Point(160, 24);
+            txtAddrMSB.Location = new Point(128, 19);
+            txtAddrMSB.Margin = new Padding(2, 2, 2, 2);
             txtAddrMSB.Name = "txtAddrMSB";
-            txtAddrMSB.Size = new Size(160, 31);
+            txtAddrMSB.Size = new Size(129, 27);
             txtAddrMSB.TabIndex = 7;
             // 
             // btnFullBrute
             // 
-            btnFullBrute.Location = new Point(8, 352);
+            btnFullBrute.Location = new Point(6, 282);
+            btnFullBrute.Margin = new Padding(2, 2, 2, 2);
             btnFullBrute.Name = "btnFullBrute";
-            btnFullBrute.Size = new Size(208, 34);
+            btnFullBrute.Size = new Size(166, 27);
             btnFullBrute.TabIndex = 12;
             btnFullBrute.Text = "Brute Force All";
             btnFullBrute.UseVisualStyleBackColor = true;
             // 
             // btnBruteAddr
             // 
-            btnBruteAddr.Location = new Point(8, 312);
+            btnBruteAddr.Location = new Point(6, 250);
+            btnBruteAddr.Margin = new Padding(2, 2, 2, 2);
             btnBruteAddr.Name = "btnBruteAddr";
-            btnBruteAddr.Size = new Size(208, 34);
+            btnBruteAddr.Size = new Size(166, 27);
             btnBruteAddr.TabIndex = 11;
             btnBruteAddr.Text = "Brute Force Addresses";
             btnBruteAddr.UseVisualStyleBackColor = true;
             // 
             // btnSaveTxRxState
             // 
-            btnSaveTxRxState.Location = new Point(8, 208);
+            btnSaveTxRxState.Location = new Point(6, 166);
+            btnSaveTxRxState.Margin = new Padding(2, 2, 2, 2);
             btnSaveTxRxState.Name = "btnSaveTxRxState";
-            btnSaveTxRxState.Size = new Size(208, 34);
+            btnSaveTxRxState.Size = new Size(166, 27);
             btnSaveTxRxState.TabIndex = 10;
             btnSaveTxRxState.Text = "Save && Set TxRx State";
             btnSaveTxRxState.UseVisualStyleBackColor = true;
@@ -512,9 +562,10 @@
             chkboxRxLog.AutoSize = true;
             chkboxRxLog.Checked = true;
             chkboxRxLog.CheckState = CheckState.Checked;
-            chkboxRxLog.Location = new Point(736, 376);
+            chkboxRxLog.Location = new Point(589, 301);
+            chkboxRxLog.Margin = new Padding(2, 2, 2, 2);
             chkboxRxLog.Name = "chkboxRxLog";
-            chkboxRxLog.Size = new Size(149, 29);
+            chkboxRxLog.Size = new Size(125, 24);
             chkboxRxLog.TabIndex = 8;
             chkboxRxLog.Text = "Enable Rx Log";
             chkboxRxLog.UseVisualStyleBackColor = true;
@@ -524,71 +575,79 @@
             chkbxTXLog.AutoSize = true;
             chkbxTXLog.Checked = true;
             chkbxTXLog.CheckState = CheckState.Checked;
-            chkbxTXLog.Location = new Point(576, 376);
+            chkbxTXLog.Location = new Point(461, 301);
+            chkbxTXLog.Margin = new Padding(2, 2, 2, 2);
             chkbxTXLog.Name = "chkbxTXLog";
-            chkbxTXLog.Size = new Size(150, 29);
+            chkbxTXLog.Size = new Size(126, 24);
             chkbxTXLog.TabIndex = 7;
             chkbxTXLog.Text = "Enable TX Log";
             chkbxTXLog.UseVisualStyleBackColor = true;
             // 
             // txtWriteMessage
             // 
-            txtWriteMessage.Location = new Point(224, 408);
+            txtWriteMessage.Location = new Point(179, 326);
+            txtWriteMessage.Margin = new Padding(2, 2, 2, 2);
             txtWriteMessage.Name = "txtWriteMessage";
-            txtWriteMessage.Size = new Size(664, 31);
+            txtWriteMessage.Size = new Size(532, 27);
             txtWriteMessage.TabIndex = 6;
             txtWriteMessage.Text = "Write ASCII To Register. 20 Characters Max.";
             // 
             // btnWriteMessage
             // 
-            btnWriteMessage.Location = new Point(8, 408);
+            btnWriteMessage.Location = new Point(6, 326);
+            btnWriteMessage.Margin = new Padding(2, 2, 2, 2);
             btnWriteMessage.Name = "btnWriteMessage";
-            btnWriteMessage.Size = new Size(208, 34);
+            btnWriteMessage.Size = new Size(166, 27);
             btnWriteMessage.TabIndex = 5;
             btnWriteMessage.Text = "Write Message";
             btnWriteMessage.UseVisualStyleBackColor = true;
             // 
             // btnReadIDLabelled
             // 
-            btnReadIDLabelled.Location = new Point(8, 144);
+            btnReadIDLabelled.Location = new Point(6, 115);
+            btnReadIDLabelled.Margin = new Padding(2, 2, 2, 2);
             btnReadIDLabelled.Name = "btnReadIDLabelled";
-            btnReadIDLabelled.Size = new Size(208, 34);
+            btnReadIDLabelled.Size = new Size(166, 27);
             btnReadIDLabelled.TabIndex = 4;
             btnReadIDLabelled.Text = "Read ID (Labelled)";
             btnReadIDLabelled.UseVisualStyleBackColor = true;
             // 
             // btnReadIDRaw
             // 
-            btnReadIDRaw.Location = new Point(8, 104);
+            btnReadIDRaw.Location = new Point(6, 83);
+            btnReadIDRaw.Margin = new Padding(2, 2, 2, 2);
             btnReadIDRaw.Name = "btnReadIDRaw";
-            btnReadIDRaw.Size = new Size(208, 34);
+            btnReadIDRaw.Size = new Size(166, 27);
             btnReadIDRaw.TabIndex = 3;
             btnReadIDRaw.Text = "Read ID (Raw)";
             btnReadIDRaw.UseVisualStyleBackColor = true;
             // 
             // btnReadAllSpreadsheet
             // 
-            btnReadAllSpreadsheet.Location = new Point(8, 64);
+            btnReadAllSpreadsheet.Location = new Point(6, 51);
+            btnReadAllSpreadsheet.Margin = new Padding(2, 2, 2, 2);
             btnReadAllSpreadsheet.Name = "btnReadAllSpreadsheet";
-            btnReadAllSpreadsheet.Size = new Size(208, 34);
+            btnReadAllSpreadsheet.Size = new Size(166, 27);
             btnReadAllSpreadsheet.TabIndex = 2;
             btnReadAllSpreadsheet.Text = "Read All Spreadsheet";
             btnReadAllSpreadsheet.UseVisualStyleBackColor = true;
             // 
             // btnReadAllRegisters
             // 
-            btnReadAllRegisters.Location = new Point(8, 24);
+            btnReadAllRegisters.Location = new Point(6, 19);
+            btnReadAllRegisters.Margin = new Padding(2, 2, 2, 2);
             btnReadAllRegisters.Name = "btnReadAllRegisters";
-            btnReadAllRegisters.Size = new Size(208, 34);
+            btnReadAllRegisters.Size = new Size(166, 27);
             btnReadAllRegisters.TabIndex = 1;
             btnReadAllRegisters.Text = "Read All Registers";
             btnReadAllRegisters.UseVisualStyleBackColor = true;
             // 
             // rtbAdvOutput
             // 
-            rtbAdvOutput.Location = new Point(224, 200);
+            rtbAdvOutput.Location = new Point(179, 160);
+            rtbAdvOutput.Margin = new Padding(2, 2, 2, 2);
             rtbAdvOutput.Name = "rtbAdvOutput";
-            rtbAdvOutput.Size = new Size(664, 176);
+            rtbAdvOutput.Size = new Size(532, 142);
             rtbAdvOutput.TabIndex = 0;
             rtbAdvOutput.Text = "";
             // 
@@ -603,10 +662,11 @@
             tabSimulation.Controls.Add(lblDuration);
             tabSimulation.Controls.Add(cmbBxChgProfile);
             tabSimulation.Controls.Add(cmbBxBaudRate);
-            tabSimulation.Location = new Point(4, 34);
+            tabSimulation.Location = new Point(4, 29);
+            tabSimulation.Margin = new Padding(2, 2, 2, 2);
             tabSimulation.Name = "tabSimulation";
-            tabSimulation.Padding = new Padding(3);
-            tabSimulation.Size = new Size(900, 474);
+            tabSimulation.Padding = new Padding(2, 2, 2, 2);
+            tabSimulation.Size = new Size(718, 377);
             tabSimulation.TabIndex = 2;
             tabSimulation.Text = "Simulation";
             tabSimulation.UseVisualStyleBackColor = true;
@@ -621,9 +681,11 @@
             grpBxSimCustomProfile.Controls.Add(lblCutoffAmps);
             grpBxSimCustomProfile.Controls.Add(txtMaxCurrRaw);
             grpBxSimCustomProfile.Controls.Add(txtCutoffRaw);
-            grpBxSimCustomProfile.Location = new Point(296, 8);
+            grpBxSimCustomProfile.Location = new Point(237, 6);
+            grpBxSimCustomProfile.Margin = new Padding(2, 2, 2, 2);
             grpBxSimCustomProfile.Name = "grpBxSimCustomProfile";
-            grpBxSimCustomProfile.Size = new Size(336, 200);
+            grpBxSimCustomProfile.Padding = new Padding(2, 2, 2, 2);
+            grpBxSimCustomProfile.Size = new Size(269, 160);
             grpBxSimCustomProfile.TabIndex = 16;
             grpBxSimCustomProfile.TabStop = false;
             grpBxSimCustomProfile.Text = "Custom Charger Profile";
@@ -632,88 +694,99 @@
             // lblCutoffRaw
             // 
             lblCutoffRaw.AutoSize = true;
-            lblCutoffRaw.Location = new Point(8, 32);
+            lblCutoffRaw.Location = new Point(6, 26);
+            lblCutoffRaw.Margin = new Padding(2, 0, 2, 0);
             lblCutoffRaw.Name = "lblCutoffRaw";
-            lblCutoffRaw.Size = new Size(110, 25);
+            lblCutoffRaw.Size = new Size(92, 20);
             lblCutoffRaw.TabIndex = 12;
             lblCutoffRaw.Text = "Cutoff (Raw)";
             // 
             // lblMaxCurrAmps
             // 
             lblMaxCurrAmps.AutoSize = true;
-            lblMaxCurrAmps.Location = new Point(8, 152);
+            lblMaxCurrAmps.Location = new Point(6, 122);
+            lblMaxCurrAmps.Margin = new Padding(2, 0, 2, 0);
             lblMaxCurrAmps.Name = "lblMaxCurrAmps";
-            lblMaxCurrAmps.Size = new Size(174, 25);
+            lblMaxCurrAmps.Size = new Size(144, 20);
             lblMaxCurrAmps.TabIndex = 15;
             lblMaxCurrAmps.Text = "Max. Current (Amps)";
             // 
             // txtMaxCurrAmps
             // 
-            txtMaxCurrAmps.Location = new Point(184, 152);
+            txtMaxCurrAmps.Location = new Point(147, 122);
+            txtMaxCurrAmps.Margin = new Padding(2, 2, 2, 2);
             txtMaxCurrAmps.Name = "txtMaxCurrAmps";
-            txtMaxCurrAmps.Size = new Size(134, 31);
+            txtMaxCurrAmps.Size = new Size(108, 27);
             txtMaxCurrAmps.TabIndex = 8;
             // 
             // lblMaxCurrRaw
             // 
             lblMaxCurrRaw.AutoSize = true;
-            lblMaxCurrRaw.Location = new Point(8, 112);
+            lblMaxCurrRaw.Location = new Point(6, 90);
+            lblMaxCurrRaw.Margin = new Padding(2, 0, 2, 0);
             lblMaxCurrRaw.Name = "lblMaxCurrRaw";
-            lblMaxCurrRaw.Size = new Size(160, 25);
+            lblMaxCurrRaw.Size = new Size(134, 20);
             lblMaxCurrRaw.TabIndex = 14;
             lblMaxCurrRaw.Text = "Max. Current (Raw)";
             // 
             // txtCutoffAmps
             // 
-            txtCutoffAmps.Location = new Point(184, 72);
+            txtCutoffAmps.Location = new Point(147, 58);
+            txtCutoffAmps.Margin = new Padding(2, 2, 2, 2);
             txtCutoffAmps.Name = "txtCutoffAmps";
-            txtCutoffAmps.Size = new Size(134, 31);
+            txtCutoffAmps.Size = new Size(108, 27);
             txtCutoffAmps.TabIndex = 9;
             // 
             // lblCutoffAmps
             // 
             lblCutoffAmps.AutoSize = true;
-            lblCutoffAmps.Location = new Point(8, 72);
+            lblCutoffAmps.Location = new Point(6, 58);
+            lblCutoffAmps.Margin = new Padding(2, 0, 2, 0);
             lblCutoffAmps.Name = "lblCutoffAmps";
-            lblCutoffAmps.Size = new Size(124, 25);
+            lblCutoffAmps.Size = new Size(102, 20);
             lblCutoffAmps.TabIndex = 13;
             lblCutoffAmps.Text = "Cutoff (Amps)";
             // 
             // txtMaxCurrRaw
             // 
-            txtMaxCurrRaw.Location = new Point(184, 112);
+            txtMaxCurrRaw.Location = new Point(147, 90);
+            txtMaxCurrRaw.Margin = new Padding(2, 2, 2, 2);
             txtMaxCurrRaw.Name = "txtMaxCurrRaw";
-            txtMaxCurrRaw.Size = new Size(134, 31);
+            txtMaxCurrRaw.Size = new Size(108, 27);
             txtMaxCurrRaw.TabIndex = 10;
             // 
             // txtCutoffRaw
             // 
-            txtCutoffRaw.Location = new Point(184, 32);
+            txtCutoffRaw.Location = new Point(147, 26);
+            txtCutoffRaw.Margin = new Padding(2, 2, 2, 2);
             txtCutoffRaw.Name = "txtCutoffRaw";
-            txtCutoffRaw.Size = new Size(134, 31);
+            txtCutoffRaw.Size = new Size(108, 27);
             txtCutoffRaw.TabIndex = 11;
             // 
             // txtSimDuration
             // 
-            txtSimDuration.Location = new Point(168, 8);
+            txtSimDuration.Location = new Point(134, 6);
+            txtSimDuration.Margin = new Padding(2, 2, 2, 2);
             txtSimDuration.Name = "txtSimDuration";
-            txtSimDuration.Size = new Size(120, 31);
+            txtSimDuration.Size = new Size(97, 27);
             txtSimDuration.TabIndex = 7;
             // 
             // btnStopSim
             // 
-            btnStopSim.Location = new Point(8, 128);
+            btnStopSim.Location = new Point(6, 102);
+            btnStopSim.Margin = new Padding(2, 2, 2, 2);
             btnStopSim.Name = "btnStopSim";
-            btnStopSim.Size = new Size(112, 34);
+            btnStopSim.Size = new Size(90, 27);
             btnStopSim.TabIndex = 6;
             btnStopSim.Text = "Stop";
             btnStopSim.UseVisualStyleBackColor = true;
             // 
             // btnStartSim
             // 
-            btnStartSim.Location = new Point(176, 128);
+            btnStartSim.Location = new Point(141, 102);
+            btnStartSim.Margin = new Padding(2, 2, 2, 2);
             btnStartSim.Name = "btnStartSim";
-            btnStartSim.Size = new Size(112, 34);
+            btnStartSim.Size = new Size(90, 27);
             btnStartSim.TabIndex = 1;
             btnStartSim.Text = "Start";
             btnStartSim.UseVisualStyleBackColor = true;
@@ -721,44 +794,49 @@
             // lblSimProfile
             // 
             lblSimProfile.AutoSize = true;
-            lblSimProfile.Location = new Point(8, 88);
+            lblSimProfile.Location = new Point(6, 70);
+            lblSimProfile.Margin = new Padding(2, 0, 2, 0);
             lblSimProfile.Name = "lblSimProfile";
-            lblSimProfile.Size = new Size(129, 25);
+            lblSimProfile.Size = new Size(108, 20);
             lblSimProfile.TabIndex = 5;
             lblSimProfile.Text = "Charger Profile";
             // 
             // lblBaudRate
             // 
             lblBaudRate.AutoSize = true;
-            lblBaudRate.Location = new Point(8, 48);
+            lblBaudRate.Location = new Point(6, 38);
+            lblBaudRate.Margin = new Padding(2, 0, 2, 0);
             lblBaudRate.Name = "lblBaudRate";
-            lblBaudRate.Size = new Size(92, 25);
+            lblBaudRate.Size = new Size(77, 20);
             lblBaudRate.TabIndex = 4;
             lblBaudRate.Text = "Baud Rate";
             // 
             // lblDuration
             // 
             lblDuration.AutoSize = true;
-            lblDuration.Location = new Point(8, 8);
+            lblDuration.Location = new Point(6, 6);
+            lblDuration.Margin = new Padding(2, 0, 2, 0);
             lblDuration.Name = "lblDuration";
-            lblDuration.Size = new Size(163, 25);
+            lblDuration.Size = new Size(136, 20);
             lblDuration.TabIndex = 3;
             lblDuration.Text = "Duration (Seconds)";
             // 
             // cmbBxChgProfile
             // 
             cmbBxChgProfile.FormattingEnabled = true;
-            cmbBxChgProfile.Location = new Point(168, 88);
+            cmbBxChgProfile.Location = new Point(134, 70);
+            cmbBxChgProfile.Margin = new Padding(2, 2, 2, 2);
             cmbBxChgProfile.Name = "cmbBxChgProfile";
-            cmbBxChgProfile.Size = new Size(120, 33);
+            cmbBxChgProfile.Size = new Size(97, 28);
             cmbBxChgProfile.TabIndex = 2;
             // 
             // cmbBxBaudRate
             // 
             cmbBxBaudRate.FormattingEnabled = true;
-            cmbBxBaudRate.Location = new Point(168, 48);
+            cmbBxBaudRate.Location = new Point(134, 38);
+            cmbBxBaudRate.Margin = new Padding(2, 2, 2, 2);
             cmbBxBaudRate.Name = "cmbBxBaudRate";
-            cmbBxBaudRate.Size = new Size(120, 33);
+            cmbBxBaudRate.Size = new Size(97, 28);
             cmbBxBaudRate.TabIndex = 1;
             // 
             // tabDiagnostics
@@ -776,19 +854,21 @@
             tabDiagnostics.Controls.Add(txtSubmitDiagType);
             tabDiagnostics.Controls.Add(txtOneKeyID);
             tabDiagnostics.Controls.Add(btnSubmitDiagForm);
-            tabDiagnostics.Location = new Point(4, 34);
+            tabDiagnostics.Location = new Point(4, 29);
+            tabDiagnostics.Margin = new Padding(2, 2, 2, 2);
             tabDiagnostics.Name = "tabDiagnostics";
-            tabDiagnostics.Padding = new Padding(3);
-            tabDiagnostics.Size = new Size(900, 474);
+            tabDiagnostics.Padding = new Padding(2, 2, 2, 2);
+            tabDiagnostics.Size = new Size(718, 377);
             tabDiagnostics.TabIndex = 3;
             tabDiagnostics.Text = "Submit Diagnostics";
             tabDiagnostics.UseVisualStyleBackColor = true;
             // 
             // btnClearDiagForm
             // 
-            btnClearDiagForm.Location = new Point(576, 216);
+            btnClearDiagForm.Location = new Point(461, 173);
+            btnClearDiagForm.Margin = new Padding(2, 2, 2, 2);
             btnClearDiagForm.Name = "btnClearDiagForm";
-            btnClearDiagForm.Size = new Size(152, 34);
+            btnClearDiagForm.Size = new Size(122, 27);
             btnClearDiagForm.TabIndex = 23;
             btnClearDiagForm.Text = "Clear Form";
             btnClearDiagForm.UseVisualStyleBackColor = true;
@@ -796,106 +876,120 @@
             // grpboxDiagOutput
             // 
             grpboxDiagOutput.Controls.Add(rtbSubmitDiagReadOnly);
-            grpboxDiagOutput.Location = new Point(296, 8);
+            grpboxDiagOutput.Location = new Point(237, 6);
+            grpboxDiagOutput.Margin = new Padding(2, 2, 2, 2);
             grpboxDiagOutput.Name = "grpboxDiagOutput";
-            grpboxDiagOutput.Size = new Size(592, 200);
+            grpboxDiagOutput.Padding = new Padding(2, 2, 2, 2);
+            grpboxDiagOutput.Size = new Size(474, 160);
             grpboxDiagOutput.TabIndex = 22;
             grpboxDiagOutput.TabStop = false;
             grpboxDiagOutput.Text = "Diagnostic Output";
             // 
             // rtbSubmitDiagReadOnly
             // 
-            rtbSubmitDiagReadOnly.Location = new Point(8, 32);
+            rtbSubmitDiagReadOnly.Location = new Point(6, 26);
+            rtbSubmitDiagReadOnly.Margin = new Padding(2, 2, 2, 2);
             rtbSubmitDiagReadOnly.Name = "rtbSubmitDiagReadOnly";
-            rtbSubmitDiagReadOnly.Size = new Size(576, 160);
+            rtbSubmitDiagReadOnly.Size = new Size(462, 129);
             rtbSubmitDiagReadOnly.TabIndex = 16;
             rtbSubmitDiagReadOnly.Text = "";
             // 
             // lblType
             // 
             lblType.AutoSize = true;
-            lblType.Location = new Point(16, 176);
+            lblType.Location = new Point(13, 141);
+            lblType.Margin = new Padding(2, 0, 2, 0);
             lblType.Name = "lblType";
-            lblType.Size = new Size(49, 25);
+            lblType.Size = new Size(40, 20);
             lblType.TabIndex = 21;
             lblType.Text = "Type";
             // 
             // lblStickerInfo
             // 
             lblStickerInfo.AutoSize = true;
-            lblStickerInfo.Location = new Point(16, 136);
+            lblStickerInfo.Location = new Point(13, 109);
+            lblStickerInfo.Margin = new Padding(2, 0, 2, 0);
             lblStickerInfo.Name = "lblStickerInfo";
-            lblStickerInfo.Size = new Size(63, 25);
+            lblStickerInfo.Size = new Size(53, 20);
             lblStickerInfo.TabIndex = 20;
             lblStickerInfo.Text = "Sticker";
             // 
             // lblToolSerialNum
             // 
             lblToolSerialNum.AutoSize = true;
-            lblToolSerialNum.Location = new Point(16, 96);
+            lblToolSerialNum.Location = new Point(13, 77);
+            lblToolSerialNum.Margin = new Padding(2, 0, 2, 0);
             lblToolSerialNum.Name = "lblToolSerialNum";
-            lblToolSerialNum.Size = new Size(70, 25);
+            lblToolSerialNum.Size = new Size(59, 20);
             lblToolSerialNum.TabIndex = 19;
             lblToolSerialNum.Text = "Serial #";
             // 
             // lblSubmitDiagDate
             // 
             lblSubmitDiagDate.AutoSize = true;
-            lblSubmitDiagDate.Location = new Point(16, 56);
+            lblSubmitDiagDate.Location = new Point(13, 45);
+            lblSubmitDiagDate.Margin = new Padding(2, 0, 2, 0);
             lblSubmitDiagDate.Name = "lblSubmitDiagDate";
-            lblSubmitDiagDate.Size = new Size(49, 25);
+            lblSubmitDiagDate.Size = new Size(41, 20);
             lblSubmitDiagDate.TabIndex = 18;
             lblSubmitDiagDate.Text = "Date";
             // 
             // lblOneKeyID
             // 
             lblOneKeyID.AutoSize = true;
-            lblOneKeyID.Location = new Point(16, 16);
+            lblOneKeyID.Location = new Point(13, 13);
+            lblOneKeyID.Margin = new Padding(2, 0, 2, 0);
             lblOneKeyID.Name = "lblOneKeyID";
-            lblOneKeyID.Size = new Size(103, 25);
+            lblOneKeyID.Size = new Size(85, 20);
             lblOneKeyID.TabIndex = 17;
             lblOneKeyID.Text = "One-Key ID";
             // 
             // txtSubmitDiagDate
             // 
-            txtSubmitDiagDate.Location = new Point(120, 56);
+            txtSubmitDiagDate.Location = new Point(96, 45);
+            txtSubmitDiagDate.Margin = new Padding(2, 2, 2, 2);
             txtSubmitDiagDate.Name = "txtSubmitDiagDate";
-            txtSubmitDiagDate.Size = new Size(150, 31);
+            txtSubmitDiagDate.Size = new Size(121, 27);
             txtSubmitDiagDate.TabIndex = 15;
             // 
             // txtSubmitDiagSerial
             // 
-            txtSubmitDiagSerial.Location = new Point(120, 96);
+            txtSubmitDiagSerial.Location = new Point(96, 77);
+            txtSubmitDiagSerial.Margin = new Padding(2, 2, 2, 2);
             txtSubmitDiagSerial.Name = "txtSubmitDiagSerial";
-            txtSubmitDiagSerial.Size = new Size(150, 31);
+            txtSubmitDiagSerial.Size = new Size(121, 27);
             txtSubmitDiagSerial.TabIndex = 14;
             // 
             // txtSubmitDiagSticker
             // 
-            txtSubmitDiagSticker.Location = new Point(120, 136);
+            txtSubmitDiagSticker.Location = new Point(96, 109);
+            txtSubmitDiagSticker.Margin = new Padding(2, 2, 2, 2);
             txtSubmitDiagSticker.Name = "txtSubmitDiagSticker";
-            txtSubmitDiagSticker.Size = new Size(150, 31);
+            txtSubmitDiagSticker.Size = new Size(121, 27);
             txtSubmitDiagSticker.TabIndex = 13;
             // 
             // txtSubmitDiagType
             // 
-            txtSubmitDiagType.Location = new Point(120, 176);
+            txtSubmitDiagType.Location = new Point(96, 141);
+            txtSubmitDiagType.Margin = new Padding(2, 2, 2, 2);
             txtSubmitDiagType.Name = "txtSubmitDiagType";
-            txtSubmitDiagType.Size = new Size(150, 31);
+            txtSubmitDiagType.Size = new Size(121, 27);
             txtSubmitDiagType.TabIndex = 11;
             // 
             // txtOneKeyID
             // 
-            txtOneKeyID.Location = new Point(120, 16);
+            txtOneKeyID.Location = new Point(96, 13);
+            txtOneKeyID.Margin = new Padding(2, 2, 2, 2);
             txtOneKeyID.Name = "txtOneKeyID";
-            txtOneKeyID.Size = new Size(150, 31);
+            txtOneKeyID.Size = new Size(121, 27);
             txtOneKeyID.TabIndex = 10;
             // 
             // btnSubmitDiagForm
             // 
-            btnSubmitDiagForm.Location = new Point(736, 216);
+            btnSubmitDiagForm.Location = new Point(589, 173);
+            btnSubmitDiagForm.Margin = new Padding(2, 2, 2, 2);
             btnSubmitDiagForm.Name = "btnSubmitDiagForm";
-            btnSubmitDiagForm.Size = new Size(152, 34);
+            btnSubmitDiagForm.Size = new Size(122, 27);
             btnSubmitDiagForm.TabIndex = 9;
             btnSubmitDiagForm.Text = "Submit Form";
             btnSubmitDiagForm.UseVisualStyleBackColor = true;
@@ -907,10 +1001,11 @@
             tabAbout.Controls.Add(linkLabelMartin);
             tabAbout.Controls.Add(lblMartin);
             tabAbout.Controls.Add(lblAboutTitle);
-            tabAbout.Location = new Point(4, 34);
+            tabAbout.Location = new Point(4, 29);
+            tabAbout.Margin = new Padding(2, 2, 2, 2);
             tabAbout.Name = "tabAbout";
-            tabAbout.Padding = new Padding(3);
-            tabAbout.Size = new Size(900, 474);
+            tabAbout.Padding = new Padding(2, 2, 2, 2);
+            tabAbout.Size = new Size(718, 377);
             tabAbout.TabIndex = 4;
             tabAbout.Text = "About";
             tabAbout.UseVisualStyleBackColor = true;
@@ -919,9 +1014,10 @@
             // 
             linkLabelKillaVolt.AutoSize = true;
             linkLabelKillaVolt.LinkArea = new LinkArea(13, 60);
-            linkLabelKillaVolt.Location = new Point(272, 176);
+            linkLabelKillaVolt.Location = new Point(218, 141);
+            linkLabelKillaVolt.Margin = new Padding(2, 0, 2, 0);
             linkLabelKillaVolt.Name = "linkLabelKillaVolt";
-            linkLabelKillaVolt.Size = new Size(347, 30);
+            linkLabelKillaVolt.Size = new Size(289, 25);
             linkLabelKillaVolt.TabIndex = 4;
             linkLabelKillaVolt.TabStop = true;
             linkLabelKillaVolt.Text = "GitHub Repo: https://github.com/KillaVolt";
@@ -931,9 +1027,10 @@
             // 
             lblKillaVoltAbout.AutoSize = true;
             lblKillaVoltAbout.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lblKillaVoltAbout.Location = new Point(320, 144);
+            lblKillaVoltAbout.Location = new Point(256, 115);
+            lblKillaVoltAbout.Margin = new Padding(2, 0, 2, 0);
             lblKillaVoltAbout.Name = "lblKillaVoltAbout";
-            lblKillaVoltAbout.Size = new Size(258, 28);
+            lblKillaVoltAbout.Size = new Size(219, 23);
             lblKillaVoltAbout.TabIndex = 3;
             lblKillaVoltAbout.Text = "GUI designed By: KillaVolt";
             // 
@@ -941,9 +1038,10 @@
             // 
             linkLabelMartin.AutoSize = true;
             linkLabelMartin.LinkArea = new LinkArea(13, 60);
-            linkLabelMartin.Location = new Point(200, 112);
+            linkLabelMartin.Location = new Point(160, 90);
+            linkLabelMartin.Margin = new Padding(2, 0, 2, 0);
             linkLabelMartin.Name = "linkLabelMartin";
-            linkLabelMartin.Size = new Size(514, 30);
+            linkLabelMartin.Size = new Size(429, 25);
             linkLabelMartin.TabIndex = 2;
             linkLabelMartin.TabStop = true;
             linkLabelMartin.Text = "GitHub Repo: https://github.com/mnh-jansson/m18-protocol/";
@@ -954,9 +1052,10 @@
             // 
             lblMartin.AutoSize = true;
             lblMartin.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point, 0);
-            lblMartin.Location = new Point(224, 80);
+            lblMartin.Location = new Point(179, 64);
+            lblMartin.Margin = new Padding(2, 0, 2, 0);
             lblMartin.Name = "lblMartin";
-            lblMartin.Size = new Size(459, 28);
+            lblMartin.Size = new Size(386, 23);
             lblMartin.TabIndex = 1;
             lblMartin.Text = "Original M18 Protocol code by: Martin Jansson";
             // 
@@ -965,38 +1064,32 @@
             lblAboutTitle.Font = new Font("Segoe UI Black", 26F, FontStyle.Bold | FontStyle.Italic, GraphicsUnit.Point, 0);
             lblAboutTitle.Image = (Image)resources.GetObject("lblAboutTitle.Image");
             lblAboutTitle.ImageAlign = ContentAlignment.MiddleLeft;
-            lblAboutTitle.Location = new Point(144, 8);
+            lblAboutTitle.Location = new Point(115, 6);
+            lblAboutTitle.Margin = new Padding(2, 0, 2, 0);
             lblAboutTitle.Name = "lblAboutTitle";
-            lblAboutTitle.Size = new Size(632, 80);
+            lblAboutTitle.Size = new Size(506, 64);
             lblAboutTitle.TabIndex = 0;
             lblAboutTitle.Text = "         Pack Analyzer GUI";
             lblAboutTitle.TextAlign = ContentAlignment.TopCenter;
             // 
             // rtbDebugOutput
             // 
-            rtbDebugOutput.Location = new Point(8, 520);
+            rtbDebugOutput.Location = new Point(8, 400);
+            rtbDebugOutput.Margin = new Padding(2, 2, 2, 2);
             rtbDebugOutput.Name = "rtbDebugOutput";
-            rtbDebugOutput.Size = new Size(904, 168);
+            rtbDebugOutput.Size = new Size(754, 79);
             rtbDebugOutput.TabIndex = 1;
             rtbDebugOutput.Text = "";
             // 
-            // btnTestFT232
-            // 
-            btnTestFT232.Location = new Point(342, 48);
-            btnTestFT232.Name = "btnTestFT232";
-            btnTestFT232.Size = new Size(112, 34);
-            btnTestFT232.TabIndex = 7;
-            btnTestFT232.Text = "Test Device";
-            btnTestFT232.UseVisualStyleBackColor = true;
-            // 
             // frmMain
             // 
-            AutoScaleDimensions = new SizeF(10F, 25F);
+            AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(928, 715);
+            ClientSize = new Size(768, 485);
             Controls.Add(rtbDebugOutput);
             Controls.Add(tabControlM18Main);
             Icon = (Icon)resources.GetObject("$this.Icon");
+            Margin = new Padding(2, 2, 2, 2);
             Name = "frmMain";
             ShowIcon = false;
             Text = "M18 Pack Analyzer";
@@ -1078,7 +1171,6 @@
         private ComboBox cmbBxBaudRate;
         private Button btnRestoreTxRxState;
         private Button btnSubmitDiagForm;
-        private Label label6;
         private Label lblType;
         private Label lblStickerInfo;
         private Label lblToolSerialNum;
@@ -1088,7 +1180,6 @@
         private TextBox txtSubmitDiagDate;
         private TextBox txtSubmitDiagSerial;
         private TextBox txtSubmitDiagSticker;
-        private TextBox textBox3;
         private TextBox txtSubmitDiagType;
         private TextBox txtOneKeyID;
         private Button btnStartSim;

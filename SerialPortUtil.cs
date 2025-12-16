@@ -59,7 +59,8 @@ internal static class SerialPortUtil
     private static void EnumerateViaSetupApi(IDictionary<string, SerialPortDisplay> ports, Action<string>? log)
     {
         // Acquire a handle to the Ports device class (COM & LPT) containing the serial devices.
-        var deviceInfoSet = SetupDiGetClassDevs(ref PortsClassGuid, null, IntPtr.Zero, DIGCF_PRESENT);
+        var portsClassGuid = PortsClassGuid;
+        var deviceInfoSet = SetupDiGetClassDevs(ref portsClassGuid, null, IntPtr.Zero, DIGCF_PRESENT);
         if (deviceInfoSet == IntPtr.Zero || deviceInfoSet == new IntPtr(-1))
         {
             log?.Invoke("SetupAPI enumeration failed to acquire device info set; continuing with fallbacks only.");
@@ -93,7 +94,8 @@ internal static class SerialPortUtil
                         continue;
                     }
 
-                    var existing = ports.GetValueOrDefault(portName!, SerialPortDisplay.Create(portName!));
+                    ports.TryGetValue(portName!, out var existing);
+                    existing ??= SerialPortDisplay.Create(portName!);
                     var combinedSource = CombineSources(existing.Source, "SetupAPI (Ports class)");
 
                     var parsedUsb = ParseUsbIdentifiers(hardwareIds, deviceInstanceId);

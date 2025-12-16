@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO.Ports;
 using System.Linq;
-using System.Management;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -107,6 +106,7 @@ namespace M18BatteryInfo
                 {
                     var sourceLabel = string.IsNullOrWhiteSpace(port.Source) ? "Unknown source" : port.Source;
                     AppendDebugLog($" - {port.DisplayName} (source: {sourceLabel})");
+                    AppendDebugLog($"   Details: description='{port.DeviceDescription ?? "(none)"}', manufacturer='{port.Manufacturer ?? "(none)"}', hwid='{port.HardwareIds ?? "(none)"}'");
                 }
 
                 if (ports.Count == 0)
@@ -135,7 +135,7 @@ namespace M18BatteryInfo
             if (cmbBxSerialPort.SelectedItem is SerialPortDisplay selected)
             {
                 _selectedPortName = selected.PortName;
-                _selectedPortDescription = selected.DisplayName;
+                _selectedPortDescription = selected.DeviceDescription ?? selected.DisplayName;
                 AppendDebugLog($"Selected port set to {selected.DisplayName} (source: {selected.Source}).");
             }
             else
@@ -331,91 +331,7 @@ namespace M18BatteryInfo
 
         private List<SerialPortDisplay> GetSerialPortInfos()
         {
-            var portLookup = new Dictionary<string, SerialPortDisplay>(StringComparer.OrdinalIgnoreCase);
-
-            static string CombineSources(string? existingSource, string newSource)
-            {
-                if (string.IsNullOrWhiteSpace(existingSource))
-                {
-                    return newSource;
-                }
-
-                return existingSource.Contains(newSource, StringComparison.OrdinalIgnoreCase)
-                    ? existingSource
-                    : $"{existingSource}; {newSource}";
-            }
-
-            foreach (var portName in SerialPort.GetPortNames())
-            {
-                portLookup[portName] = new SerialPortDisplay(portName, null, null, null, "SerialPort.GetPortNames() fallback");
-            }
-
-            try
-            {
-                using var serialSearcher = new ManagementObjectSearcher("SELECT DeviceID, Description, Manufacturer, Name FROM Win32_SerialPort");
-                foreach (var obj in serialSearcher.Get().OfType<ManagementObject>())
-                {
-                    var portName = ExtractPortName(obj["DeviceID"]?.ToString());
-                    if (string.IsNullOrWhiteSpace(portName))
-                    {
-                        continue;
-                    }
-
-                    var existing = portLookup.GetValueOrDefault(portName, new SerialPortDisplay(portName, null, null, null, string.Empty));
-                    portLookup[portName] = existing with
-                    {
-                        Description = obj["Description"]?.ToString(),
-                        Manufacturer = obj["Manufacturer"]?.ToString(),
-                        FriendlyName = obj["Name"]?.ToString(),
-                        Source = CombineSources(existing.Source, "WMI: Win32_SerialPort")
-                    };
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendDebugLog($"Win32_SerialPort query failed; using fallback data only. Details: {ex.Message}");
-            }
-
-            try
-            {
-                using var pnpSearcher = new ManagementObjectSearcher("SELECT DeviceID, Caption, Manufacturer, Name FROM Win32_PnPEntity WHERE Caption LIKE 'COM%' OR DeviceID LIKE 'COM%'");
-                foreach (var obj in pnpSearcher.Get().OfType<ManagementObject>())
-                {
-                    var portName = ExtractPortName(obj["Caption"]?.ToString()) ?? ExtractPortName(obj["DeviceID"]?.ToString());
-                    if (string.IsNullOrWhiteSpace(portName))
-                    {
-                        continue;
-                    }
-
-                    var existing = portLookup.GetValueOrDefault(portName, new SerialPortDisplay(portName, null, null, null, string.Empty));
-                    portLookup[portName] = existing with
-                    {
-                        Description = existing.Description ?? obj["Caption"]?.ToString(),
-                        Manufacturer = existing.Manufacturer ?? obj["Manufacturer"]?.ToString(),
-                        FriendlyName = existing.FriendlyName ?? obj["Name"]?.ToString(),
-                        Source = CombineSources(existing.Source, "WMI: Win32_PnPEntity")
-                    };
-                }
-            }
-            catch (Exception ex)
-            {
-                AppendDebugLog($"Win32_PnPEntity query failed; using available data. Details: {ex.Message}");
-            }
-
-            return portLookup.Values
-                .OrderBy(port => port.PortName, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-        }
-
-        private static string? ExtractPortName(string? source)
-        {
-            if (string.IsNullOrWhiteSpace(source))
-            {
-                return null;
-            }
-
-            var match = System.Text.RegularExpressions.Regex.Match(source, @"(COM\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            return match.Success ? match.Groups[1].Value.ToUpperInvariant() : null;
+            return SerialPortUtil.EnumerateDetailedPorts(AppendDebugLog);
         }
 
         private async void btnTestFT232_Click(object? sender, EventArgs e)
@@ -598,34 +514,5 @@ namespace M18BatteryInfo
 
         }
 
-        private sealed record SerialPortDisplay(string PortName, string? Description, string? Manufacturer, string? FriendlyName, string Source)
-        {
-            public string DisplayName
-            {
-                get
-                {
-                    var coreDescription = FriendlyName ?? Description;
-
-                    if (string.IsNullOrWhiteSpace(coreDescription))
-                    {
-                        return PortName;
-                    }
-
-                    var manufacturerText = string.IsNullOrWhiteSpace(Manufacturer)
-                        ? string.Empty
-                        : $" ({Manufacturer})";
-
-                    return $"{PortName} — {coreDescription}{manufacturerText}";
-                }
-            }
-
-            public bool IsLikelyFtdi => new[] { Description, Manufacturer, FriendlyName }
-                .Any(value => value != null && value.IndexOf("FTDI", StringComparison.OrdinalIgnoreCase) >= 0);
-
-            public override string ToString()
-            {
-                return DisplayName;
-            }
-        }
     }
 }

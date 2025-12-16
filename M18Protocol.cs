@@ -38,6 +38,23 @@ namespace M18BatteryInfo
         private readonly SerialPort _port;
         private bool _disposed;
 
+        private bool EnsurePortOpen(string operation)
+        {
+            if (_disposed)
+            {
+                LogDebug($"{operation} skipped because protocol is disposed.");
+                return false;
+            }
+
+            if (!_port.IsOpen)
+            {
+                LogDebug($"{operation} skipped because serial port {_port.PortName} is not open.");
+                return false;
+            }
+
+            return true;
+        }
+
         public M18Protocol(string portName, Action<string>? debugLogger = null)
         {
             DebugLogger = debugLogger;
@@ -119,9 +136,23 @@ namespace M18BatteryInfo
                 throw new ArgumentNullException(nameof(command));
             }
 
+            if (!EnsurePortOpen("Send"))
+            {
+                return;
+            }
+
             LogDebug($"Send called with command length {command.Length}. Raw payload: {FormatBytes(command)}.");
-            _port.DiscardInBuffer();
-            LogDebug("Input buffer discarded prior to send.");
+
+            try
+            {
+                _port.DiscardInBuffer();
+                LogDebug("Input buffer discarded prior to send.");
+            }
+            catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
+            {
+                LogDebug($"DiscardInBuffer skipped because port is not available: {ex.GetType().Name} - {ex.Message}");
+                return;
+            }
 
             var msb = new byte[command.Length];
             for (int i = 0; i < command.Length; i++)
@@ -146,8 +177,15 @@ namespace M18BatteryInfo
                 Console.WriteLine(logMessage);
             }
 
-            _port.Write(msb, 0, msb.Length);
-            LogDebug($"Command sent over serial: {FormatBytes(msb)} (MSB).");
+            try
+            {
+                _port.Write(msb, 0, msb.Length);
+                LogDebug($"Command sent over serial: {FormatBytes(msb)} (MSB).");
+            }
+            catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
+            {
+                LogDebug($"Send aborted because port is not available: {ex.GetType().Name} - {ex.Message}");
+            }
         }
 
         public void SendCommand(byte[] command)
@@ -158,11 +196,21 @@ namespace M18BatteryInfo
 
         public byte[] ReadResponse(int size)
         {
+            if (!EnsurePortOpen("ReadResponse"))
+            {
+                return Array.Empty<byte>();
+            }
+
             LogDebug($"ReadResponse called with expected size {size}.");
             int firstByte;
             try
             {
                 firstByte = _port.ReadByte();
+            }
+            catch (InvalidOperationException ex)
+            {
+                LogDebug($"ReadResponse skipped because port is unavailable: {ex.GetType().Name} - {ex.Message}");
+                return Array.Empty<byte>();
             }
             catch (TimeoutException)
             {
@@ -216,6 +264,11 @@ namespace M18BatteryInfo
             LogDebug("Reset invoked. Driving control lines to issue reset sequence.");
             Acc = 4;
 
+            if (!EnsurePortOpen("Reset"))
+            {
+                return false;
+            }
+
             _port.BreakState = true;
             _port.DtrEnable = true;
             Thread.Sleep(300);
@@ -244,6 +297,10 @@ namespace M18BatteryInfo
         public void Idle()
         {
             LogDebug("Setting TX to Idle (BreakState=true, DtrEnable=true).");
+            if (!EnsurePortOpen("Idle"))
+            {
+                return;
+            }
             _port.BreakState = true;
             _port.DtrEnable = true;
         }
@@ -251,12 +308,41 @@ namespace M18BatteryInfo
         public void High()
         {
             LogDebug("Setting TX to Active (BreakState=false, DtrEnable=false).");
+            if (!EnsurePortOpen("High"))
+            {
+                return;
+            }
             _port.BreakState = false;
             _port.DtrEnable = false;
         }
 
+        public string GetTxStateSummary(string caller)
+        {
+            try
+            {
+                var disposedText = _disposed ? "disposed" : "active";
+                var openState = _port.IsOpen ? "open" : "closed";
+                if (!_port.IsOpen)
+                {
+                    return $"{caller}: Port {_port.PortName} is {openState} and protocol is {disposedText}; TX state unavailable.";
+                }
+
+                return $"{caller}: Port {_port.PortName} is {openState} and protocol is {disposedText}. BreakState={_port.BreakState}, DtrEnable={_port.DtrEnable}.";
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"Error while retrieving TX state: {ex.GetType().Name} - {ex.Message}");
+                return $"{caller}: TX state unavailable due to error.";
+            }
+        }
+
         public string HealthReport()
         {
+            if (_disposed)
+            {
+                return "Protocol disposed; health report unavailable.";
+            }
+
             LogDebug("Generating HealthReport summary.");
             var builder = new StringBuilder();
 
@@ -335,6 +421,16 @@ namespace M18BatteryInfo
                         totalRead += read;
                         LogDebug($"Read {read} byte(s); total read so far: {totalRead}.");
                     }
+                }
+                catch (InvalidOperationException ex)
+                {
+                    LogDebug($"ReadAvailable stopped because port is unavailable: {ex.GetType().Name} - {ex.Message}");
+                    break;
+                }
+                catch (ObjectDisposedException ex)
+                {
+                    LogDebug($"ReadAvailable stopped because port is disposed: {ex.GetType().Name} - {ex.Message}");
+                    break;
                 }
                 catch (TimeoutException)
                 {

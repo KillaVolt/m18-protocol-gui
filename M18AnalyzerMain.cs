@@ -32,6 +32,7 @@ namespace M18BatteryInfo
             chkboxRxLog.CheckedChanged += chkboxRxLog_CheckedChanged;
             btnTestFT232.Click += btnTestFT232_Click;
             cmbBxSerialPort.SelectedIndexChanged += cmbBxSerialPort_SelectedIndexChanged;
+            FormClosing += frmMain_FormClosing;
 
             chkbxTXLog.Checked = true;
             chkboxRxLog.Checked = true;
@@ -43,6 +44,8 @@ namespace M18BatteryInfo
             toolTipSimpleTab.SetToolTip(btnHealthReport, "Read and display a basic battery health report.");
             toolTipSimpleTab.SetToolTip(btnReset, "Send a reset signal to the connected battery.");
             toolTipSimpleTab.SetToolTip(btnCopyOutput, "Copy all output log text to the clipboard.");
+
+            UpdateConnectionUi(false);
         }
 
         private void toolStripButton1_Click(object sender, EventArgs e)
@@ -178,26 +181,34 @@ namespace M18BatteryInfo
                 await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName, AppendDebugLog));
                 ApplyProtocolLoggingPreferences();
                 AppendLogBoth($"{selectedDescription} opened successfully.");
+                UpdateConnectionUi(true);
             }
             catch (Exception ex)
             {
                 _protocol = null;
                 LogError($"Failed to open {selectedDescription}.", ex);
+                UpdateConnectionUi(false);
             }
         }
 
         private async void btnDisconnect_Click(object? sender, EventArgs e)
         {
-            LogDebugAction("Requesting DisconnectAsync().");
+            LogDebugAction(FormatLogMessage("btnDisconnect pressed - requesting DisconnectAsync()."));
             await DisconnectAsync();
         }
 
-        private async Task DisconnectAsync()
+        private async Task DisconnectAsync(bool showUserMessages = true)
         {
             if (_protocol == null)
             {
-                AppendLogBoth("Disconnect requested, but no serial port is currently open.");
-                MessageBox.Show("No serial port is currently open.", "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var message = "Disconnect requested, but no serial port is currently open.";
+                AppendDebugLog(FormatLogMessage(message));
+                if (showUserMessages)
+                {
+                    AppendLog(message);
+                    MessageBox.Show(message, "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                UpdateConnectionUi(false);
                 return;
             }
 
@@ -215,22 +226,24 @@ namespace M18BatteryInfo
             finally
             {
                 _protocol = null;
+                UpdateConnectionUi(false);
             }
         }
 
         private async void btnIdle_Click(object? sender, EventArgs e)
         {
-            LogDebugAction("Requesting _protocol.Idle().");
+            AppendDebugLog(FormatLogMessage("btnIdle pressed - calling _protocol.Idle()."));
             if (!EnsureConnected())
             {
                 return;
             }
 
-            AppendDebugLog("Invoking _protocol.Idle() to drive TX low.");
+            AppendDebugLog(FormatLogMessage("Invoking _protocol.Idle() to drive TX low."));
             try
             {
                 await Task.Run(() => _protocol!.Idle());
                 AppendLogBoth("TX set to Idle (low). Safe to connect or disconnect battery.");
+                AppendDebugLog(FormatLogMessage(_protocol!.GetTxStateSummary("Idle")));
             }
             catch (Exception ex)
             {
@@ -240,17 +253,18 @@ namespace M18BatteryInfo
 
         private async void btnActive_Click(object? sender, EventArgs e)
         {
-            LogDebugAction("Requesting _protocol.High().");
+            AppendDebugLog(FormatLogMessage("btnActive pressed - calling _protocol.High()."));
             if (!EnsureConnected())
             {
                 return;
             }
 
-            AppendDebugLog("Invoking _protocol.High() to drive TX high.");
+            AppendDebugLog(FormatLogMessage("Invoking _protocol.High() to drive TX high."));
             try
             {
                 await Task.Run(() => _protocol!.High());
                 AppendLogBoth("TX set to Active (high). Charger simulation enabled.");
+                AppendDebugLog(FormatLogMessage(_protocol!.GetTxStateSummary("High")));
             }
             catch (Exception ex)
             {
@@ -260,7 +274,7 @@ namespace M18BatteryInfo
 
         private async void btnHealthReport_Click(object? sender, EventArgs e)
         {
-            LogDebugAction("Requesting _protocol.HealthReport().");
+            AppendDebugLog(FormatLogMessage("btnHealthReport pressed - calling _protocol.HealthReport()."));
             if (!EnsureConnected())
             {
                 return;
@@ -268,14 +282,15 @@ namespace M18BatteryInfo
 
             try
             {
-                AppendDebugLog("Starting health report collection (mirrors m18.py health()).");
+                AppendDebugLog(FormatLogMessage("Starting health report collection (mirrors m18.py health())."));
                 var report = await Task.Run(() => _protocol!.HealthReport());
-                AppendLogBoth("=== Health report ===");
+                AppendLog("=== Health report ===");
                 foreach (var line in report.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
                 {
-                    AppendLogBoth(line);
+                    AppendLog(line);
                 }
-                AppendLogBoth("Health report complete.");
+                AppendLog("Health report complete.");
+                AppendDebugLog(FormatLogMessage("Health report appended to output."));
             }
             catch (Exception ex)
             {
@@ -318,7 +333,7 @@ namespace M18BatteryInfo
 
         private bool EnsureConnected()
         {
-            LogDebugAction("Checking EnsureConnected().");
+            LogDebugAction(FormatLogMessage("Checking EnsureConnected()."));
             if (_protocol != null)
             {
                 return true;
@@ -507,6 +522,34 @@ namespace M18BatteryInfo
             rtbDebugOutput.SelectionStart = rtbDebugOutput.TextLength;
             rtbDebugOutput.ScrollToCaret();
             _hasAppendedDebugLog = true;
+        }
+
+        private void UpdateConnectionUi(bool connected)
+        {
+            btnConnect.Enabled = !connected;
+            btnDisconnect.Enabled = connected;
+            btnIdle.Enabled = connected;
+            btnActive.Enabled = connected;
+            btnHealthReport.Enabled = connected;
+            btnReset.Enabled = connected;
+            btnCopyOutput.Enabled = true;
+            btnTestFT232.Enabled = !connected;
+            cmbBxSerialPort.Enabled = !connected;
+            btnRefresh.Enabled = !connected;
+        }
+
+        private async void frmMain_FormClosing(object? sender, FormClosingEventArgs e)
+        {
+            AppendDebugLog(FormatLogMessage("Form closing requested - attempting clean disconnect."));
+
+            try
+            {
+                await DisconnectAsync(false);
+            }
+            catch (Exception ex)
+            {
+                AppendDebugLog(FormatLogMessage($"Form closing disconnect encountered an error: {ex.GetType().Name} - {ex.Message}"));
+            }
         }
 
         private void rtbOutput_TextChanged(object sender, EventArgs e)

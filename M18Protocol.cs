@@ -571,7 +571,7 @@ namespace M18BatteryInfo
                 };
 
                 var batteryDetails = batLookup.TryGetValue(batType, out var details) ? details : (0d, "Unknown");
-                builder.AppendLine($"Type: {batType} [{batteryDetails.Description}]");
+                builder.AppendLine($"Type: {batType} [{batteryDetails.Item2}]");
                 builder.AppendLine($"E-serial: {eSerial} (does NOT match case serial)");
 
                 var batNow = values[^2] as DateTime? ?? DateTime.UtcNow;
@@ -612,8 +612,8 @@ namespace M18BatteryInfo
                 builder.AppendLine("\nTOOL USE STATS:");
                 var totalDischarge = Convert.ToDouble(values[7] ?? 0);
                 builder.AppendLine($"Total discharge (Ah): {totalDischarge / 3600:0.00}");
-                var totalDischargeCycles = batteryDetails.Capacity != 0
-                    ? $"{totalDischarge / 3600 / batteryDetails.Capacity:0.00}"
+                var totalDischargeCycles = batteryDetails.Item1 != 0
+                    ? $"{totalDischarge / 3600 / batteryDetails.Item1:0.00}"
                     : "Unknown battery type, unable to calculate";
                 builder.AppendLine($"Total discharge cycles: {totalDischargeCycles}");
                 builder.AppendLine($"Times discharged to empty: {values[8]}");
@@ -850,7 +850,7 @@ namespace M18BatteryInfo
                     {
                         totalRead += read;
                         LogDebug($"Read {read} byte(s); total read so far: {totalRead}.");
-                    }
+                      }
                 }
                 catch (InvalidOperationException ex)
                 {

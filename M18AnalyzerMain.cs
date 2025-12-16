@@ -14,6 +14,8 @@ namespace M18BatteryInfo
         private bool _hasAppendedLog;
         private bool _hasAppendedAdvancedLog;
         private bool _hasAppendedDebugLog;
+        private string? _selectedPortName;
+        private string? _selectedPortDescription;
 
         public frmMain()
         {
@@ -30,6 +32,7 @@ namespace M18BatteryInfo
             chkbxTXLog.CheckedChanged += chkbxTXLog_CheckedChanged;
             chkboxRxLog.CheckedChanged += chkboxRxLog_CheckedChanged;
             btnTestFT232.Click += btnTestFT232_Click;
+            cmbBxSerialPort.SelectedIndexChanged += cmbBxSerialPort_SelectedIndexChanged;
 
             chkbxTXLog.Checked = true;
             chkboxRxLog.Checked = true;
@@ -114,10 +117,31 @@ namespace M18BatteryInfo
                 {
                     cmbBxSerialPort.SelectedIndex = 0;
                 }
+                
+                if (cmbBxSerialPort.SelectedItem is null)
+                {
+                    _selectedPortName = null;
+                    _selectedPortDescription = null;
+                }
             }
             catch (Exception ex)
             {
                 LogError("Error while refreshing serial ports", ex);
+            }
+        }
+
+        private void cmbBxSerialPort_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (cmbBxSerialPort.SelectedItem is SerialPortDisplay selected)
+            {
+                _selectedPortName = selected.PortName;
+                _selectedPortDescription = selected.DisplayName;
+                AppendDebugLog($"Selected port set to {selected.DisplayName} (source: {selected.Source}).");
+            }
+            else
+            {
+                _selectedPortName = null;
+                _selectedPortDescription = null;
             }
         }
 
@@ -144,19 +168,21 @@ namespace M18BatteryInfo
                 await DisconnectAsync();
             }
 
-            AppendLogBoth($"Attempting to open {selectedPort.DisplayName} with settings: 4800 baud, 8 data bits, parity None, stop bits Two, handshake None.");
+            var selectedDescription = _selectedPortDescription ?? selectedPort.DisplayName;
+
+            AppendLogBoth($"Attempting to open {selectedDescription} with settings: 4800 baud, 8 data bits, parity None, stop bits Two, handshake None.");
             AppendDebugLog("Serial connection will set TX low (idle) after open.");
 
             try
             {
                 await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName, AppendDebugLog));
                 ApplyProtocolLoggingPreferences();
-                AppendLogBoth($"{selectedPort.DisplayName} opened successfully.");
+                AppendLogBoth($"{selectedDescription} opened successfully.");
             }
             catch (Exception ex)
             {
                 _protocol = null;
-                LogError($"Failed to open {selectedPort.DisplayName}.", ex);
+                LogError($"Failed to open {selectedDescription}.", ex);
             }
         }
 
@@ -403,8 +429,10 @@ namespace M18BatteryInfo
                 return;
             }
 
-            AppendLog($"Testing FT232 on {selectedPort.DisplayName}...");
-            LogDebugAction($"Testing FT232 on {selectedPort.DisplayName}.");
+            var selectedDescription = _selectedPortDescription ?? selectedPort.DisplayName;
+
+            AppendLog($"Testing FT232 on {selectedDescription}...");
+            LogDebugAction($"Testing FT232 on {selectedDescription}.");
 
             var testResult = await Task.Run(() => TestSerialDevice(selectedPort));
 
@@ -576,9 +604,18 @@ namespace M18BatteryInfo
             {
                 get
                 {
-                    return string.IsNullOrWhiteSpace(FriendlyName)
-                        ? PortName
-                        : $"{PortName} - {FriendlyName}";
+                    var coreDescription = FriendlyName ?? Description;
+
+                    if (string.IsNullOrWhiteSpace(coreDescription))
+                    {
+                        return PortName;
+                    }
+
+                    var manufacturerText = string.IsNullOrWhiteSpace(Manufacturer)
+                        ? string.Empty
+                        : $" ({Manufacturer})";
+
+                    return $"{PortName} — {coreDescription}{manufacturerText}";
                 }
             }
 

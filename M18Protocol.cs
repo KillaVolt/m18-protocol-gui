@@ -343,15 +343,52 @@ namespace M18BatteryInfo
                 return "Protocol disposed; health report unavailable.";
             }
 
-            LogDebug("Generating HealthReport summary.");
-            var builder = new StringBuilder();
+            var wasOpen = _port.IsOpen;
+            var portName = _port.PortName;
 
-            builder.AppendLine($"Port: {_port.PortName}");
-            builder.AppendLine($"Port open: {_port.IsOpen}");
-            builder.AppendLine("Basic health report functionality is limited in this build.");
-            builder.AppendLine("Connect to a battery pack to retrieve detailed statistics.");
+            LogDebug($"Running Python health report for {portName}.");
 
-            return builder.ToString().TrimEnd();
+            if (wasOpen)
+            {
+                try
+                {
+                    _port.Close();
+                    Thread.Sleep(150);
+                    LogDebug("Serial port closed to allow Python script access.");
+                }
+                catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
+                {
+                    LogDebug($"Unable to close port before health report: {ex.GetType().Name} - {ex.Message}");
+                }
+            }
+
+            string output;
+            try
+            {
+                output = PythonScriptRunner.RunPythonScript($"--port {portName} --health");
+                LogDebug("Python health report completed.");
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"Python health report failed: {ex.GetType().Name} - {ex.Message}");
+                output = $"Health report failed: {ex.Message}";
+            }
+
+            if (wasOpen)
+            {
+                try
+                {
+                    _port.Open();
+                    Idle();
+                    LogDebug("Serial port reopened after health report.");
+                }
+                catch (Exception ex)
+                {
+                    LogDebug($"Failed to reopen port after health report: {ex.GetType().Name} - {ex.Message}");
+                }
+            }
+
+            return string.IsNullOrWhiteSpace(output) ? "No output from health report." : output.TrimEnd();
         }
 
         public void Close()

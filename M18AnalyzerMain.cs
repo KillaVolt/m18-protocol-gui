@@ -117,7 +117,7 @@ namespace M18BatteryInfo
                 {
                     cmbBxSerialPort.SelectedIndex = 0;
                 }
-                
+
                 if (cmbBxSerialPort.SelectedItem is null)
                 {
                     _selectedPortName = null;
@@ -514,5 +514,9 @@ namespace M18BatteryInfo
 
         }
 
+        private void cmbBxSerialPort_SelectedIndexChanged_1(object sender, EventArgs e)
+        {
+
+        }
     }
 }

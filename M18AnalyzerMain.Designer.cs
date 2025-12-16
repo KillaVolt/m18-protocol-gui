@@ -139,7 +139,7 @@
             tabControlM18Main.Controls.Add(tabDiagnostics);
             tabControlM18Main.Controls.Add(tabAbout);
             tabControlM18Main.Location = new Point(6, 6);
-            tabControlM18Main.Margin = new Padding(2, 2, 2, 2);
+            tabControlM18Main.Margin = new Padding(2);
             tabControlM18Main.Name = "tabControlM18Main";
             tabControlM18Main.SelectedIndex = 0;
             tabControlM18Main.Size = new Size(762, 394);
@@ -155,9 +155,9 @@
             tabSimple.Controls.Add(lblSerialPort);
             tabSimple.Controls.Add(cmbBxSerialPort);
             tabSimple.Location = new Point(4, 29);
-            tabSimple.Margin = new Padding(2, 2, 2, 2);
+            tabSimple.Margin = new Padding(2);
             tabSimple.Name = "tabSimple";
-            tabSimple.Padding = new Padding(2, 2, 2, 2);
+            tabSimple.Padding = new Padding(2);
             tabSimple.Size = new Size(754, 361);
             tabSimple.TabIndex = 0;
             tabSimple.Text = "Simple";
@@ -166,7 +166,7 @@
             // btnTestFT232
             // 
             btnTestFT232.Location = new Point(274, 38);
-            btnTestFT232.Margin = new Padding(2, 2, 2, 2);
+            btnTestFT232.Margin = new Padding(2);
             btnTestFT232.Name = "btnTestFT232";
             btnTestFT232.Size = new Size(90, 27);
             btnTestFT232.TabIndex = 7;
@@ -182,9 +182,9 @@
             grpOutput.Controls.Add(rtbOutput);
             grpOutput.Controls.Add(btnIdle);
             grpOutput.Location = new Point(5, 70);
-            grpOutput.Margin = new Padding(2, 2, 2, 2);
+            grpOutput.Margin = new Padding(2);
             grpOutput.Name = "grpOutput";
-            grpOutput.Padding = new Padding(2, 2, 2, 2);
+            grpOutput.Padding = new Padding(2);
             grpOutput.Size = new Size(739, 282);
             grpOutput.TabIndex = 6;
             grpOutput.TabStop = false;
@@ -193,7 +193,7 @@
             // btnCopyOutput
             // 
             btnCopyOutput.Location = new Point(616, 120);
-            btnCopyOutput.Margin = new Padding(2, 2, 2, 2);
+            btnCopyOutput.Margin = new Padding(2);
             btnCopyOutput.Name = "btnCopyOutput";
             btnCopyOutput.Size = new Size(118, 27);
             btnCopyOutput.TabIndex = 11;
@@ -204,7 +204,7 @@
             // btnReset
             // 
             btnReset.Location = new Point(616, 248);
-            btnReset.Margin = new Padding(2, 2, 2, 2);
+            btnReset.Margin = new Padding(2);
             btnReset.Name = "btnReset";
             btnReset.Size = new Size(118, 27);
             btnReset.TabIndex = 10;
@@ -215,7 +215,7 @@
             // btnHealthReport
             // 
             btnHealthReport.Location = new Point(616, 88);
-            btnHealthReport.Margin = new Padding(2, 2, 2, 2);
+            btnHealthReport.Margin = new Padding(2);
             btnHealthReport.Name = "btnHealthReport";
             btnHealthReport.Size = new Size(118, 27);
             btnHealthReport.TabIndex = 9;
@@ -226,7 +226,7 @@
             // btnActive
             // 
             btnActive.Location = new Point(616, 56);
-            btnActive.Margin = new Padding(2, 2, 2, 2);
+            btnActive.Margin = new Padding(2);
             btnActive.Name = "btnActive";
             btnActive.Size = new Size(118, 27);
             btnActive.TabIndex = 8;
@@ -239,7 +239,7 @@
             rtbOutput.BackColor = Color.Black;
             rtbOutput.ForeColor = Color.Lime;
             rtbOutput.Location = new Point(5, 24);
-            rtbOutput.Margin = new Padding(2, 2, 2, 2);
+            rtbOutput.Margin = new Padding(2);
             rtbOutput.Name = "rtbOutput";
             rtbOutput.Size = new Size(603, 252);
             rtbOutput.TabIndex = 0;
@@ -249,7 +249,7 @@
             // btnIdle
             // 
             btnIdle.Location = new Point(616, 24);
-            btnIdle.Margin = new Padding(2, 2, 2, 2);
+            btnIdle.Margin = new Padding(2);
             btnIdle.Name = "btnIdle";
             btnIdle.Size = new Size(118, 27);
             btnIdle.TabIndex = 7;
@@ -260,7 +260,7 @@
             // btnDisconnect
             // 
             btnDisconnect.Location = new Point(371, 38);
-            btnDisconnect.Margin = new Padding(2, 2, 2, 2);
+            btnDisconnect.Margin = new Padding(2);
             btnDisconnect.Name = "btnDisconnect";
             btnDisconnect.Size = new Size(90, 27);
             btnDisconnect.TabIndex = 5;
@@ -270,7 +270,7 @@
             // btnConnect
             // 
             btnConnect.Location = new Point(179, 38);
-            btnConnect.Margin = new Padding(2, 2, 2, 2);
+            btnConnect.Margin = new Padding(2);
             btnConnect.Name = "btnConnect";
             btnConnect.Size = new Size(90, 27);
             btnConnect.TabIndex = 4;
@@ -281,7 +281,7 @@
             // btnRefresh
             // 
             btnRefresh.Location = new Point(83, 38);
-            btnRefresh.Margin = new Padding(2, 2, 2, 2);
+            btnRefresh.Margin = new Padding(2);
             btnRefresh.Name = "btnRefresh";
             btnRefresh.Size = new Size(90, 27);
             btnRefresh.TabIndex = 3;
@@ -303,10 +303,11 @@
             // 
             cmbBxSerialPort.FormattingEnabled = true;
             cmbBxSerialPort.Location = new Point(86, 9);
-            cmbBxSerialPort.Margin = new Padding(2, 2, 2, 2);
+            cmbBxSerialPort.Margin = new Padding(2);
             cmbBxSerialPort.Name = "cmbBxSerialPort";
             cmbBxSerialPort.Size = new Size(626, 28);
             cmbBxSerialPort.TabIndex = 1;
+            cmbBxSerialPort.SelectedIndexChanged += cmbBxSerialPort_SelectedIndexChanged_1;
             // 
             // tabAdvanced
             // 
@@ -326,9 +327,9 @@
             tabAdvanced.Controls.Add(btnReadAllRegisters);
             tabAdvanced.Controls.Add(rtbAdvOutput);
             tabAdvanced.Location = new Point(4, 29);
-            tabAdvanced.Margin = new Padding(2, 2, 2, 2);
+            tabAdvanced.Margin = new Padding(2);
             tabAdvanced.Name = "tabAdvanced";
-            tabAdvanced.Padding = new Padding(2, 2, 2, 2);
+            tabAdvanced.Padding = new Padding(2);
             tabAdvanced.Size = new Size(754, 361);
             tabAdvanced.TabIndex = 1;
             tabAdvanced.Text = "Advanced";
@@ -337,7 +338,7 @@
             // btnRestoreTxRxState
             // 
             btnRestoreTxRxState.Location = new Point(6, 198);
-            btnRestoreTxRxState.Margin = new Padding(2, 2, 2, 2);
+            btnRestoreTxRxState.Margin = new Padding(2);
             btnRestoreTxRxState.Name = "btnRestoreTxRxState";
             btnRestoreTxRxState.Size = new Size(166, 27);
             btnRestoreTxRxState.TabIndex = 15;
@@ -355,9 +356,9 @@
             grpTryCmd.Controls.Add(lblCommand);
             grpTryCmd.Controls.Add(txtCommand);
             grpTryCmd.Location = new Point(448, 6);
-            grpTryCmd.Margin = new Padding(2, 2, 2, 2);
+            grpTryCmd.Margin = new Padding(2);
             grpTryCmd.Name = "grpTryCmd";
-            grpTryCmd.Padding = new Padding(2, 2, 2, 2);
+            grpTryCmd.Padding = new Padding(2);
             grpTryCmd.Size = new Size(262, 147);
             grpTryCmd.TabIndex = 14;
             grpTryCmd.TabStop = false;
@@ -366,7 +367,7 @@
             // txtTryCmdLength
             // 
             txtTryCmdLength.Location = new Point(128, 115);
-            txtTryCmdLength.Margin = new Padding(2, 2, 2, 2);
+            txtTryCmdLength.Margin = new Padding(2);
             txtTryCmdLength.Name = "txtTryCmdLength";
             txtTryCmdLength.Size = new Size(129, 27);
             txtTryCmdLength.TabIndex = 14;
@@ -374,7 +375,7 @@
             // txtAddressLow
             // 
             txtAddressLow.Location = new Point(128, 83);
-            txtAddressLow.Margin = new Padding(2, 2, 2, 2);
+            txtAddressLow.Margin = new Padding(2);
             txtAddressLow.Name = "txtAddressLow";
             txtAddressLow.Size = new Size(129, 27);
             txtAddressLow.TabIndex = 13;
@@ -382,7 +383,7 @@
             // txtAddressHigh
             // 
             txtAddressHigh.Location = new Point(128, 51);
-            txtAddressHigh.Margin = new Padding(2, 2, 2, 2);
+            txtAddressHigh.Margin = new Padding(2);
             txtAddressHigh.Name = "txtAddressHigh";
             txtAddressHigh.Size = new Size(129, 27);
             txtAddressHigh.TabIndex = 12;
@@ -430,7 +431,7 @@
             // txtCommand
             // 
             txtCommand.Location = new Point(128, 19);
-            txtCommand.Margin = new Padding(2, 2, 2, 2);
+            txtCommand.Margin = new Padding(2);
             txtCommand.Name = "txtCommand";
             txtCommand.Size = new Size(129, 27);
             txtCommand.TabIndex = 7;
@@ -446,9 +447,9 @@
             grpbxDebugCmd.Controls.Add(lblMSB);
             grpbxDebugCmd.Controls.Add(txtAddrMSB);
             grpbxDebugCmd.Location = new Point(179, 6);
-            grpbxDebugCmd.Margin = new Padding(2, 2, 2, 2);
+            grpbxDebugCmd.Margin = new Padding(2);
             grpbxDebugCmd.Name = "grpbxDebugCmd";
-            grpbxDebugCmd.Padding = new Padding(2, 2, 2, 2);
+            grpbxDebugCmd.Padding = new Padding(2);
             grpbxDebugCmd.Size = new Size(262, 147);
             grpbxDebugCmd.TabIndex = 13;
             grpbxDebugCmd.TabStop = false;
@@ -457,7 +458,7 @@
             // txtResponseLength
             // 
             txtResponseLength.Location = new Point(128, 115);
-            txtResponseLength.Margin = new Padding(2, 2, 2, 2);
+            txtResponseLength.Margin = new Padding(2);
             txtResponseLength.Name = "txtResponseLength";
             txtResponseLength.Size = new Size(129, 27);
             txtResponseLength.TabIndex = 14;
@@ -465,7 +466,7 @@
             // txtDebugCmdLength
             // 
             txtDebugCmdLength.Location = new Point(128, 83);
-            txtDebugCmdLength.Margin = new Padding(2, 2, 2, 2);
+            txtDebugCmdLength.Margin = new Padding(2);
             txtDebugCmdLength.Name = "txtDebugCmdLength";
             txtDebugCmdLength.Size = new Size(129, 27);
             txtDebugCmdLength.TabIndex = 13;
@@ -473,7 +474,7 @@
             // txtAddrLSB
             // 
             txtAddrLSB.Location = new Point(128, 51);
-            txtAddrLSB.Margin = new Padding(2, 2, 2, 2);
+            txtAddrLSB.Margin = new Padding(2);
             txtAddrLSB.Name = "txtAddrLSB";
             txtAddrLSB.Size = new Size(129, 27);
             txtAddrLSB.TabIndex = 12;
@@ -522,7 +523,7 @@
             // txtAddrMSB
             // 
             txtAddrMSB.Location = new Point(128, 19);
-            txtAddrMSB.Margin = new Padding(2, 2, 2, 2);
+            txtAddrMSB.Margin = new Padding(2);
             txtAddrMSB.Name = "txtAddrMSB";
             txtAddrMSB.Size = new Size(129, 27);
             txtAddrMSB.TabIndex = 7;
@@ -530,7 +531,7 @@
             // btnFullBrute
             // 
             btnFullBrute.Location = new Point(6, 282);
-            btnFullBrute.Margin = new Padding(2, 2, 2, 2);
+            btnFullBrute.Margin = new Padding(2);
             btnFullBrute.Name = "btnFullBrute";
             btnFullBrute.Size = new Size(166, 27);
             btnFullBrute.TabIndex = 12;
@@ -540,7 +541,7 @@
             // btnBruteAddr
             // 
             btnBruteAddr.Location = new Point(6, 250);
-            btnBruteAddr.Margin = new Padding(2, 2, 2, 2);
+            btnBruteAddr.Margin = new Padding(2);
             btnBruteAddr.Name = "btnBruteAddr";
             btnBruteAddr.Size = new Size(166, 27);
             btnBruteAddr.TabIndex = 11;
@@ -550,7 +551,7 @@
             // btnSaveTxRxState
             // 
             btnSaveTxRxState.Location = new Point(6, 166);
-            btnSaveTxRxState.Margin = new Padding(2, 2, 2, 2);
+            btnSaveTxRxState.Margin = new Padding(2);
             btnSaveTxRxState.Name = "btnSaveTxRxState";
             btnSaveTxRxState.Size = new Size(166, 27);
             btnSaveTxRxState.TabIndex = 10;
@@ -563,7 +564,7 @@
             chkboxRxLog.Checked = true;
             chkboxRxLog.CheckState = CheckState.Checked;
             chkboxRxLog.Location = new Point(589, 301);
-            chkboxRxLog.Margin = new Padding(2, 2, 2, 2);
+            chkboxRxLog.Margin = new Padding(2);
             chkboxRxLog.Name = "chkboxRxLog";
             chkboxRxLog.Size = new Size(125, 24);
             chkboxRxLog.TabIndex = 8;
@@ -576,7 +577,7 @@
             chkbxTXLog.Checked = true;
             chkbxTXLog.CheckState = CheckState.Checked;
             chkbxTXLog.Location = new Point(461, 301);
-            chkbxTXLog.Margin = new Padding(2, 2, 2, 2);
+            chkbxTXLog.Margin = new Padding(2);
             chkbxTXLog.Name = "chkbxTXLog";
             chkbxTXLog.Size = new Size(126, 24);
             chkbxTXLog.TabIndex = 7;
@@ -586,7 +587,7 @@
             // txtWriteMessage
             // 
             txtWriteMessage.Location = new Point(179, 326);
-            txtWriteMessage.Margin = new Padding(2, 2, 2, 2);
+            txtWriteMessage.Margin = new Padding(2);
             txtWriteMessage.Name = "txtWriteMessage";
             txtWriteMessage.Size = new Size(532, 27);
             txtWriteMessage.TabIndex = 6;
@@ -595,7 +596,7 @@
             // btnWriteMessage
             // 
             btnWriteMessage.Location = new Point(6, 326);
-            btnWriteMessage.Margin = new Padding(2, 2, 2, 2);
+            btnWriteMessage.Margin = new Padding(2);
             btnWriteMessage.Name = "btnWriteMessage";
             btnWriteMessage.Size = new Size(166, 27);
             btnWriteMessage.TabIndex = 5;
@@ -605,7 +606,7 @@
             // btnReadIDLabelled
             // 
             btnReadIDLabelled.Location = new Point(6, 115);
-            btnReadIDLabelled.Margin = new Padding(2, 2, 2, 2);
+            btnReadIDLabelled.Margin = new Padding(2);
             btnReadIDLabelled.Name = "btnReadIDLabelled";
             btnReadIDLabelled.Size = new Size(166, 27);
             btnReadIDLabelled.TabIndex = 4;
@@ -615,7 +616,7 @@
             // btnReadIDRaw
             // 
             btnReadIDRaw.Location = new Point(6, 83);
-            btnReadIDRaw.Margin = new Padding(2, 2, 2, 2);
+            btnReadIDRaw.Margin = new Padding(2);
             btnReadIDRaw.Name = "btnReadIDRaw";
             btnReadIDRaw.Size = new Size(166, 27);
             btnReadIDRaw.TabIndex = 3;
@@ -625,7 +626,7 @@
             // btnReadAllSpreadsheet
             // 
             btnReadAllSpreadsheet.Location = new Point(6, 51);
-            btnReadAllSpreadsheet.Margin = new Padding(2, 2, 2, 2);
+            btnReadAllSpreadsheet.Margin = new Padding(2);
             btnReadAllSpreadsheet.Name = "btnReadAllSpreadsheet";
             btnReadAllSpreadsheet.Size = new Size(166, 27);
             btnReadAllSpreadsheet.TabIndex = 2;
@@ -635,7 +636,7 @@
             // btnReadAllRegisters
             // 
             btnReadAllRegisters.Location = new Point(6, 19);
-            btnReadAllRegisters.Margin = new Padding(2, 2, 2, 2);
+            btnReadAllRegisters.Margin = new Padding(2);
             btnReadAllRegisters.Name = "btnReadAllRegisters";
             btnReadAllRegisters.Size = new Size(166, 27);
             btnReadAllRegisters.TabIndex = 1;
@@ -645,7 +646,7 @@
             // rtbAdvOutput
             // 
             rtbAdvOutput.Location = new Point(179, 160);
-            rtbAdvOutput.Margin = new Padding(2, 2, 2, 2);
+            rtbAdvOutput.Margin = new Padding(2);
             rtbAdvOutput.Name = "rtbAdvOutput";
             rtbAdvOutput.Size = new Size(532, 142);
             rtbAdvOutput.TabIndex = 0;
@@ -663,10 +664,10 @@
             tabSimulation.Controls.Add(cmbBxChgProfile);
             tabSimulation.Controls.Add(cmbBxBaudRate);
             tabSimulation.Location = new Point(4, 29);
-            tabSimulation.Margin = new Padding(2, 2, 2, 2);
+            tabSimulation.Margin = new Padding(2);
             tabSimulation.Name = "tabSimulation";
-            tabSimulation.Padding = new Padding(2, 2, 2, 2);
-            tabSimulation.Size = new Size(718, 377);
+            tabSimulation.Padding = new Padding(2);
+            tabSimulation.Size = new Size(754, 361);
             tabSimulation.TabIndex = 2;
             tabSimulation.Text = "Simulation";
             tabSimulation.UseVisualStyleBackColor = true;
@@ -682,9 +683,9 @@
             grpBxSimCustomProfile.Controls.Add(txtMaxCurrRaw);
             grpBxSimCustomProfile.Controls.Add(txtCutoffRaw);
             grpBxSimCustomProfile.Location = new Point(237, 6);
-            grpBxSimCustomProfile.Margin = new Padding(2, 2, 2, 2);
+            grpBxSimCustomProfile.Margin = new Padding(2);
             grpBxSimCustomProfile.Name = "grpBxSimCustomProfile";
-            grpBxSimCustomProfile.Padding = new Padding(2, 2, 2, 2);
+            grpBxSimCustomProfile.Padding = new Padding(2);
             grpBxSimCustomProfile.Size = new Size(269, 160);
             grpBxSimCustomProfile.TabIndex = 16;
             grpBxSimCustomProfile.TabStop = false;
@@ -714,7 +715,7 @@
             // txtMaxCurrAmps
             // 
             txtMaxCurrAmps.Location = new Point(147, 122);
-            txtMaxCurrAmps.Margin = new Padding(2, 2, 2, 2);
+            txtMaxCurrAmps.Margin = new Padding(2);
             txtMaxCurrAmps.Name = "txtMaxCurrAmps";
             txtMaxCurrAmps.Size = new Size(108, 27);
             txtMaxCurrAmps.TabIndex = 8;
@@ -732,7 +733,7 @@
             // txtCutoffAmps
             // 
             txtCutoffAmps.Location = new Point(147, 58);
-            txtCutoffAmps.Margin = new Padding(2, 2, 2, 2);
+            txtCutoffAmps.Margin = new Padding(2);
             txtCutoffAmps.Name = "txtCutoffAmps";
             txtCutoffAmps.Size = new Size(108, 27);
             txtCutoffAmps.TabIndex = 9;
@@ -750,7 +751,7 @@
             // txtMaxCurrRaw
             // 
             txtMaxCurrRaw.Location = new Point(147, 90);
-            txtMaxCurrRaw.Margin = new Padding(2, 2, 2, 2);
+            txtMaxCurrRaw.Margin = new Padding(2);
             txtMaxCurrRaw.Name = "txtMaxCurrRaw";
             txtMaxCurrRaw.Size = new Size(108, 27);
             txtMaxCurrRaw.TabIndex = 10;
@@ -758,7 +759,7 @@
             // txtCutoffRaw
             // 
             txtCutoffRaw.Location = new Point(147, 26);
-            txtCutoffRaw.Margin = new Padding(2, 2, 2, 2);
+            txtCutoffRaw.Margin = new Padding(2);
             txtCutoffRaw.Name = "txtCutoffRaw";
             txtCutoffRaw.Size = new Size(108, 27);
             txtCutoffRaw.TabIndex = 11;
@@ -766,7 +767,7 @@
             // txtSimDuration
             // 
             txtSimDuration.Location = new Point(134, 6);
-            txtSimDuration.Margin = new Padding(2, 2, 2, 2);
+            txtSimDuration.Margin = new Padding(2);
             txtSimDuration.Name = "txtSimDuration";
             txtSimDuration.Size = new Size(97, 27);
             txtSimDuration.TabIndex = 7;
@@ -774,7 +775,7 @@
             // btnStopSim
             // 
             btnStopSim.Location = new Point(6, 102);
-            btnStopSim.Margin = new Padding(2, 2, 2, 2);
+            btnStopSim.Margin = new Padding(2);
             btnStopSim.Name = "btnStopSim";
             btnStopSim.Size = new Size(90, 27);
             btnStopSim.TabIndex = 6;
@@ -784,7 +785,7 @@
             // btnStartSim
             // 
             btnStartSim.Location = new Point(141, 102);
-            btnStartSim.Margin = new Padding(2, 2, 2, 2);
+            btnStartSim.Margin = new Padding(2);
             btnStartSim.Name = "btnStartSim";
             btnStartSim.Size = new Size(90, 27);
             btnStartSim.TabIndex = 1;
@@ -825,7 +826,7 @@
             // 
             cmbBxChgProfile.FormattingEnabled = true;
             cmbBxChgProfile.Location = new Point(134, 70);
-            cmbBxChgProfile.Margin = new Padding(2, 2, 2, 2);
+            cmbBxChgProfile.Margin = new Padding(2);
             cmbBxChgProfile.Name = "cmbBxChgProfile";
             cmbBxChgProfile.Size = new Size(97, 28);
             cmbBxChgProfile.TabIndex = 2;
@@ -834,7 +835,7 @@
             // 
             cmbBxBaudRate.FormattingEnabled = true;
             cmbBxBaudRate.Location = new Point(134, 38);
-            cmbBxBaudRate.Margin = new Padding(2, 2, 2, 2);
+            cmbBxBaudRate.Margin = new Padding(2);
             cmbBxBaudRate.Name = "cmbBxBaudRate";
             cmbBxBaudRate.Size = new Size(97, 28);
             cmbBxBaudRate.TabIndex = 1;
@@ -855,10 +856,10 @@
             tabDiagnostics.Controls.Add(txtOneKeyID);
             tabDiagnostics.Controls.Add(btnSubmitDiagForm);
             tabDiagnostics.Location = new Point(4, 29);
-            tabDiagnostics.Margin = new Padding(2, 2, 2, 2);
+            tabDiagnostics.Margin = new Padding(2);
             tabDiagnostics.Name = "tabDiagnostics";
-            tabDiagnostics.Padding = new Padding(2, 2, 2, 2);
-            tabDiagnostics.Size = new Size(718, 377);
+            tabDiagnostics.Padding = new Padding(2);
+            tabDiagnostics.Size = new Size(754, 361);
             tabDiagnostics.TabIndex = 3;
             tabDiagnostics.Text = "Submit Diagnostics";
             tabDiagnostics.UseVisualStyleBackColor = true;
@@ -866,7 +867,7 @@
             // btnClearDiagForm
             // 
             btnClearDiagForm.Location = new Point(461, 173);
-            btnClearDiagForm.Margin = new Padding(2, 2, 2, 2);
+            btnClearDiagForm.Margin = new Padding(2);
             btnClearDiagForm.Name = "btnClearDiagForm";
             btnClearDiagForm.Size = new Size(122, 27);
             btnClearDiagForm.TabIndex = 23;
@@ -877,9 +878,9 @@
             // 
             grpboxDiagOutput.Controls.Add(rtbSubmitDiagReadOnly);
             grpboxDiagOutput.Location = new Point(237, 6);
-            grpboxDiagOutput.Margin = new Padding(2, 2, 2, 2);
+            grpboxDiagOutput.Margin = new Padding(2);
             grpboxDiagOutput.Name = "grpboxDiagOutput";
-            grpboxDiagOutput.Padding = new Padding(2, 2, 2, 2);
+            grpboxDiagOutput.Padding = new Padding(2);
             grpboxDiagOutput.Size = new Size(474, 160);
             grpboxDiagOutput.TabIndex = 22;
             grpboxDiagOutput.TabStop = false;
@@ -888,7 +889,7 @@
             // rtbSubmitDiagReadOnly
             // 
             rtbSubmitDiagReadOnly.Location = new Point(6, 26);
-            rtbSubmitDiagReadOnly.Margin = new Padding(2, 2, 2, 2);
+            rtbSubmitDiagReadOnly.Margin = new Padding(2);
             rtbSubmitDiagReadOnly.Name = "rtbSubmitDiagReadOnly";
             rtbSubmitDiagReadOnly.Size = new Size(462, 129);
             rtbSubmitDiagReadOnly.TabIndex = 16;
@@ -947,7 +948,7 @@
             // txtSubmitDiagDate
             // 
             txtSubmitDiagDate.Location = new Point(96, 45);
-            txtSubmitDiagDate.Margin = new Padding(2, 2, 2, 2);
+            txtSubmitDiagDate.Margin = new Padding(2);
             txtSubmitDiagDate.Name = "txtSubmitDiagDate";
             txtSubmitDiagDate.Size = new Size(121, 27);
             txtSubmitDiagDate.TabIndex = 15;
@@ -955,7 +956,7 @@
             // txtSubmitDiagSerial
             // 
             txtSubmitDiagSerial.Location = new Point(96, 77);
-            txtSubmitDiagSerial.Margin = new Padding(2, 2, 2, 2);
+            txtSubmitDiagSerial.Margin = new Padding(2);
             txtSubmitDiagSerial.Name = "txtSubmitDiagSerial";
             txtSubmitDiagSerial.Size = new Size(121, 27);
             txtSubmitDiagSerial.TabIndex = 14;
@@ -963,7 +964,7 @@
             // txtSubmitDiagSticker
             // 
             txtSubmitDiagSticker.Location = new Point(96, 109);
-            txtSubmitDiagSticker.Margin = new Padding(2, 2, 2, 2);
+            txtSubmitDiagSticker.Margin = new Padding(2);
             txtSubmitDiagSticker.Name = "txtSubmitDiagSticker";
             txtSubmitDiagSticker.Size = new Size(121, 27);
             txtSubmitDiagSticker.TabIndex = 13;
@@ -971,7 +972,7 @@
             // txtSubmitDiagType
             // 
             txtSubmitDiagType.Location = new Point(96, 141);
-            txtSubmitDiagType.Margin = new Padding(2, 2, 2, 2);
+            txtSubmitDiagType.Margin = new Padding(2);
             txtSubmitDiagType.Name = "txtSubmitDiagType";
             txtSubmitDiagType.Size = new Size(121, 27);
             txtSubmitDiagType.TabIndex = 11;
@@ -979,7 +980,7 @@
             // txtOneKeyID
             // 
             txtOneKeyID.Location = new Point(96, 13);
-            txtOneKeyID.Margin = new Padding(2, 2, 2, 2);
+            txtOneKeyID.Margin = new Padding(2);
             txtOneKeyID.Name = "txtOneKeyID";
             txtOneKeyID.Size = new Size(121, 27);
             txtOneKeyID.TabIndex = 10;
@@ -987,7 +988,7 @@
             // btnSubmitDiagForm
             // 
             btnSubmitDiagForm.Location = new Point(589, 173);
-            btnSubmitDiagForm.Margin = new Padding(2, 2, 2, 2);
+            btnSubmitDiagForm.Margin = new Padding(2);
             btnSubmitDiagForm.Name = "btnSubmitDiagForm";
             btnSubmitDiagForm.Size = new Size(122, 27);
             btnSubmitDiagForm.TabIndex = 9;
@@ -1002,10 +1003,10 @@
             tabAbout.Controls.Add(lblMartin);
             tabAbout.Controls.Add(lblAboutTitle);
             tabAbout.Location = new Point(4, 29);
-            tabAbout.Margin = new Padding(2, 2, 2, 2);
+            tabAbout.Margin = new Padding(2);
             tabAbout.Name = "tabAbout";
-            tabAbout.Padding = new Padding(2, 2, 2, 2);
-            tabAbout.Size = new Size(718, 377);
+            tabAbout.Padding = new Padding(2);
+            tabAbout.Size = new Size(754, 361);
             tabAbout.TabIndex = 4;
             tabAbout.Text = "About";
             tabAbout.UseVisualStyleBackColor = true;
@@ -1075,7 +1076,7 @@
             // rtbDebugOutput
             // 
             rtbDebugOutput.Location = new Point(8, 400);
-            rtbDebugOutput.Margin = new Padding(2, 2, 2, 2);
+            rtbDebugOutput.Margin = new Padding(2);
             rtbDebugOutput.Name = "rtbDebugOutput";
             rtbDebugOutput.Size = new Size(754, 79);
             rtbDebugOutput.TabIndex = 1;
@@ -1089,7 +1090,7 @@
             Controls.Add(rtbDebugOutput);
             Controls.Add(tabControlM18Main);
             Icon = (Icon)resources.GetObject("$this.Icon");
-            Margin = new Padding(2, 2, 2, 2);
+            Margin = new Padding(2);
             Name = "frmMain";
             ShowIcon = false;
             Text = "M18 Pack Analyzer";

@@ -243,7 +243,7 @@ namespace M18BatteryInfo
             LogDebug($"Initializing protocol for port {portName}.");
             _port = new SerialPort(portName, 4800, Parity.None, 8, StopBits.Two)
             {
-                ReadTimeout = 800,
+                ReadTimeout = 1200,
                 WriteTimeout = 800
             };
 
@@ -451,29 +451,43 @@ namespace M18BatteryInfo
                 return false;
             }
 
-            _port.BreakState = true;
-            _port.DtrEnable = true;
-            Thread.Sleep(300);
-
-            _port.BreakState = false;
-            _port.DtrEnable = false;
-            Thread.Sleep(300);
-
-            Send(new[] { SYNC_BYTE });
-
-            try
+            for (var attempt = 1; attempt <= 3; attempt++)
             {
-                LogDebug("Awaiting reset response after SYNC byte.");
-                var response = ReadResponse(1);
-                var success = response.Length > 0 && response[0] == SYNC_BYTE;
-                LogDebug($"Reset response {(success ? "acknowledged" : "did not match expected SYNC")}.");
-                return success;
+                LogDebug($"Reset attempt {attempt} starting.");
+
+                _port.DiscardInBuffer();
+                _port.BreakState = true;
+                _port.DtrEnable = true;
+                Thread.Sleep(300);
+
+                _port.BreakState = false;
+                _port.DtrEnable = false;
+                Thread.Sleep(300);
+
+                Send(new[] { SYNC_BYTE });
+
+                try
+                {
+                    LogDebug("Awaiting reset response after SYNC byte.");
+                    var response = ReadResponse(1);
+                    var success = response.Length > 0 && response[0] == SYNC_BYTE;
+                    LogDebug($"Reset response {(success ? "acknowledged" : "did not match expected SYNC")}.");
+                    if (success)
+                    {
+                        Thread.Sleep(10);
+                        return true;
+                    }
+                }
+                catch (InvalidOperationException ex)
+                {
+                    LogDebug($"Reset attempt {attempt} failed: {ex.GetType().Name} - {ex.Message}");
+                }
+
+                Thread.Sleep(50);
             }
-            catch (InvalidOperationException ex)
-            {
-                LogDebug($"Reset failed with exception: {ex.GetType().Name} - {ex.Message}");
-                return false;
-            }
+
+            LogDebug("All reset attempts exhausted without a response.");
+            return false;
         }
 
         public void Idle()

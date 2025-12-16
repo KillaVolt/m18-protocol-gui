@@ -472,30 +472,15 @@ internal sealed record SerialPortDisplay(
         {
             var parts = new List<string> { PortName };
 
+            var ftdiOrUsbSegment = BuildFtdiOrUsbSegment();
+            if (!string.IsNullOrWhiteSpace(ftdiOrUsbSegment))
+            {
+                parts.Add(ftdiOrUsbSegment!);
+            }
+
             if (!string.IsNullOrWhiteSpace(DeviceDescription))
             {
                 parts.Add(DeviceDescription!);
-            }
-
-            var usbParts = new List<string>();
-            if (!string.IsNullOrWhiteSpace(UsbVendorId) || !string.IsNullOrWhiteSpace(UsbProductId))
-            {
-                usbParts.Add($"USB VID:{UsbVendorId ?? "????"} PID:{UsbProductId ?? "????"}");
-            }
-
-            if (!string.IsNullOrWhiteSpace(UsbSerialNumber))
-            {
-                usbParts.Add($"SNR:{UsbSerialNumber}");
-            }
-
-            if (!string.IsNullOrWhiteSpace(LocationPath))
-            {
-                usbParts.Add(LocationPath!);
-            }
-
-            if (usbParts.Count > 0)
-            {
-                parts.Add(string.Join(' ', usbParts));
             }
 
             if (!string.IsNullOrWhiteSpace(Manufacturer))
@@ -503,17 +488,34 @@ internal sealed record SerialPortDisplay(
                 parts.Add(Manufacturer!);
             }
 
-            if (!string.IsNullOrWhiteSpace(HardwareIds))
-            {
-                parts.Add($"Hardware ID: {HardwareIds}");
-            }
-
-            return string.Join(" — ", parts);
+            return string.Join(" - ", parts);
         }
     }
 
     public bool IsLikelyFtdi => new[] { Description, Manufacturer, FriendlyName }
         .Any(value => value != null && value.IndexOf("FTDI", StringComparison.OrdinalIgnoreCase) >= 0);
+
+    private string? BuildFtdiOrUsbSegment()
+    {
+        if (IsLikelyFtdi)
+        {
+            return "FTDI detected";
+        }
+
+        var usbParts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(UsbVendorId))
+        {
+            usbParts.Add($"VID:{UsbVendorId}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(UsbProductId))
+        {
+            usbParts.Add($"PID:{UsbProductId}");
+        }
+
+        return usbParts.Count > 0 ? string.Join(" ", usbParts) : null;
+    }
 
     private string? SanitizeDescription(string? rawDescription)
     {

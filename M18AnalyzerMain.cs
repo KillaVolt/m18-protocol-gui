@@ -98,7 +98,7 @@ namespace M18BatteryInfo
                 foreach (var port in ports)
                 {
                     cmbBxSerialPort.Items.Add(port);
-                    AppendLogBoth($"Found port {port.DisplayName}{(port.IsLikelyFtdi ? " (FTDI detected)" : string.Empty)}");
+                    AppendLogBoth($"Found port {port.DisplayName}");
                 }
 
                 AppendDebugLog($"RefreshSerialPorts(): {ports.Count} port(s) detected.");

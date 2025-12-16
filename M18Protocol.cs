@@ -427,11 +427,6 @@ namespace M18BatteryInfo
                     LogDebug($"ReadAvailable stopped because port is unavailable: {ex.GetType().Name} - {ex.Message}");
                     break;
                 }
-                catch (ObjectDisposedException ex)
-                {
-                    LogDebug($"ReadAvailable stopped because port is disposed: {ex.GetType().Name} - {ex.Message}");
-                    break;
-                }
                 catch (TimeoutException)
                 {
                     LogDebug("Timeout encountered while reading available bytes.");

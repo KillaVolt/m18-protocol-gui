@@ -34,6 +34,7 @@
             tabSimple = new TabPage();
             btnTestFT232 = new Button();
             grpOutput = new GroupBox();
+            btnTestEcho = new Button();
             btnCopyOutput = new Button();
             btnReset = new Button();
             btnHealthReport = new Button();
@@ -175,6 +176,7 @@
             // 
             // grpOutput
             // 
+            grpOutput.Controls.Add(btnTestEcho);
             grpOutput.Controls.Add(btnCopyOutput);
             grpOutput.Controls.Add(btnReset);
             grpOutput.Controls.Add(btnHealthReport);
@@ -189,6 +191,16 @@
             grpOutput.TabIndex = 6;
             grpOutput.TabStop = false;
             grpOutput.Text = "Output";
+            // 
+            // btnTestEcho
+            // 
+            btnTestEcho.Location = new Point(616, 176);
+            btnTestEcho.Name = "btnTestEcho";
+            btnTestEcho.Size = new Size(120, 29);
+            btnTestEcho.TabIndex = 12;
+            btnTestEcho.Text = "Test Raw Echo";
+            btnTestEcho.UseVisualStyleBackColor = true;
+            btnTestEcho.Click += button1_Click;
             // 
             // btnCopyOutput
             // 
@@ -1078,7 +1090,7 @@
             rtbDebugOutput.Location = new Point(8, 400);
             rtbDebugOutput.Margin = new Padding(2);
             rtbDebugOutput.Name = "rtbDebugOutput";
-            rtbDebugOutput.Size = new Size(754, 79);
+            rtbDebugOutput.Size = new Size(754, 168);
             rtbDebugOutput.TabIndex = 1;
             rtbDebugOutput.Text = "";
             // 
@@ -1086,7 +1098,7 @@
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(768, 485);
+            ClientSize = new Size(768, 576);
             Controls.Add(rtbDebugOutput);
             Controls.Add(tabControlM18Main);
             Icon = (Icon)resources.GetObject("$this.Icon");
@@ -1207,5 +1219,6 @@
         private Label lblKillaVoltAbout;
         private RichTextBox rtbDebugOutput;
         private Button btnTestFT232;
+        private Button btnTestEcho;
     }
 }

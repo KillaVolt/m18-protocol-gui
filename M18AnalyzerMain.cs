@@ -561,5 +561,46 @@ namespace M18BatteryInfo
         {
 
         }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+
+        }
+        private void btnTestEcho_Click(object sender, EventArgs e)
+{
+    rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Starting raw echo test on COM{_protocol?.PortName ?? "??"}\n");
+    try
+    {
+        if (_protocol == null || !_protocol.IsOpen)
+        {
+            rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Serial port not open. Connect first.\n");
+            return;
+        }
+
+        // Clear input buffer to avoid stale data
+        _protocol.DiscardInBuffer();
+
+        // Send 0xAA
+        byte[] send = { 0xAA };
+        _protocol.Write(send, 0, 1);
+        rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Sent byte 0xAA.\n");
+
+        // Try to read one byte, with timeout
+        int response = _protocol.ReadByte(); // This blocks up to ReadTimeout
+        if (response >= 0)
+        {
+            rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Received byte: 0x{response:X2}\n");
+        }
+        else
+        {
+            rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - No byte received (timeout).\n");
+        }
+    }
+    catch (Exception ex)
+    {
+        rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Exception: {ex.Message}\n");
+    }
+}
+
     }
 }

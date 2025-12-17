@@ -571,22 +571,22 @@ namespace M18BatteryInfo
     rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Starting raw echo test on COM{_protocol?.PortName ?? "??"}\n");
     try
     {
-        if (_protocol == null || !_protocol.IsOpen)
+        if (_protocol?.Port.IsOpen != true)
         {
             rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Serial port not open. Connect first.\n");
             return;
         }
 
         // Clear input buffer to avoid stale data
-        _protocol.DiscardInBuffer();
+        _protocol.Port.DiscardInBuffer();
 
         // Send 0xAA
         byte[] send = { 0xAA };
-        _protocol.Write(send, 0, 1);
+        _protocol.Port.Write(send, 0, 1);
         rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Sent byte 0xAA.\n");
 
         // Try to read one byte, with timeout
-        int response = _protocol.ReadByte(); // This blocks up to ReadTimeout
+        int response = _protocol.Port.ReadByte(); // This blocks up to ReadTimeout
         if (response >= 0)
         {
             rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Received byte: 0x{response:X2}\n");

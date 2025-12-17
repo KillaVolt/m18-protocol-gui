@@ -220,6 +220,8 @@ namespace M18BatteryInfo
         private bool? _savedPrintTx;
         private bool? _savedPrintRx;
 
+        public SerialPort Port => _port;
+
         private bool EnsurePortOpen(string operation)
         {
             if (_disposed)

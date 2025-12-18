@@ -14,7 +14,7 @@ using System.Linq;
 
 namespace M18BatteryInfo;
 
-internal sealed class SerialPortConnection : IDisposable
+public sealed class SerialPortConnection : IDisposable
 {
     private readonly SerialPort _serialPort;
     private Action<string>? _rawLogger;

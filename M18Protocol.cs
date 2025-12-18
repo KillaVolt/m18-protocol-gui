@@ -531,7 +531,7 @@ namespace M18BatteryInfo
                     LogDebug("Awaiting reset response after SYNC byte."); // Trace waiting state.
                     var response = ReadResponse(1); // Expect single byte echo.
                     var success = response.Length > 0 && response[0] == SYNC_BYTE; // Evaluate acknowledgement.
-                    LogDebug($"Reset response {(success ? \"acknowledged\" : \"did not match expected SYNC\")}."); // Report result.
+                    LogDebug($"Reset response {(success ? "acknowledged" : "did not match expected SYNC")}."); // Report result.
                     if (success)
                     {
                         Thread.Sleep(10); // Brief pause to stabilize before further commands.
@@ -680,7 +680,7 @@ namespace M18BatteryInfo
                 {
                     var totalVoltage = cellVoltages.Sum() / 1000.0; // Convert total mV to V for readability.
                     builder.AppendLine($"Pack voltage: {totalVoltage}"); // Show pack voltage.
-                    builder.AppendLine($"Cell Voltages (mV): {string.Join(\", \", cellVoltages)}"); // List individual cell voltages.
+                    builder.AppendLine($"Cell Voltages (mV): {string.Join(", ", cellVoltages)}"); // List individual cell voltages.
                     builder.AppendLine($"Cell Imbalance (mV): {cellVoltages.Max() - cellVoltages.Min()}"); // Compute imbalance as diagnostic metric.
                 }
 
@@ -728,7 +728,7 @@ namespace M18BatteryInfo
                 var lastSeconds = Convert.ToInt32(values[38] ?? 0); // >200A bucket seconds.
                 var lastPct = toolTime > 0 ? Math.Round(lastSeconds / (double)toolTime * 100) : 0; // Percent for final bucket.
                 var lastBar = new string('X', (int)lastPct); // ASCII bar for final bucket.
-                builder.AppendLine($"Time @ {\"> 200A\",8}: {TimeSpan.FromSeconds(lastSeconds)} {lastPct,2:0}% {lastBar}"); // Show extreme current usage.
+                builder.AppendLine($"Time @ {"> 200A",8}: {TimeSpan.FromSeconds(lastSeconds)} {lastPct,2:0}% {lastBar}"); // Show extreme current usage.
 
                 return builder.ToString().TrimEnd(); // Return compiled report with trailing newline trimmed.
             }

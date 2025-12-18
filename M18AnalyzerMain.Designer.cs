@@ -44,7 +44,6 @@ namespace M18BatteryInfo
             tabSimple = new TabPage();
             btnTestFT232 = new Button();
             grpOutput = new GroupBox();
-            btnTestEcho = new Button();
             btnCopyOutput = new Button();
             btnReset = new Button();
             btnHealthReport = new Button();
@@ -186,7 +185,6 @@ namespace M18BatteryInfo
             // 
             // grpOutput
             // 
-            grpOutput.Controls.Add(btnTestEcho);
             grpOutput.Controls.Add(btnCopyOutput);
             grpOutput.Controls.Add(btnReset);
             grpOutput.Controls.Add(btnHealthReport);
@@ -201,16 +199,6 @@ namespace M18BatteryInfo
             grpOutput.TabIndex = 6;
             grpOutput.TabStop = false;
             grpOutput.Text = "Output";
-            // 
-            // btnTestEcho
-            // 
-            btnTestEcho.Location = new Point(832, 176);
-            btnTestEcho.Name = "btnTestEcho";
-            btnTestEcho.Size = new Size(120, 29);
-            btnTestEcho.TabIndex = 12;
-            btnTestEcho.Text = "Test Raw Echo";
-            btnTestEcho.UseVisualStyleBackColor = true;
-            btnTestEcho.Click += button1_Click;
             // 
             // btnCopyOutput
             // 
@@ -352,7 +340,7 @@ namespace M18BatteryInfo
             tabAdvanced.Margin = new Padding(2);
             tabAdvanced.Name = "tabAdvanced";
             tabAdvanced.Padding = new Padding(2);
-            tabAdvanced.Size = new Size(754, 361);
+            tabAdvanced.Size = new Size(1090, 361);
             tabAdvanced.TabIndex = 1;
             tabAdvanced.Text = "Advanced";
             tabAdvanced.UseVisualStyleBackColor = true;
@@ -689,7 +677,7 @@ namespace M18BatteryInfo
             tabSimulation.Margin = new Padding(2);
             tabSimulation.Name = "tabSimulation";
             tabSimulation.Padding = new Padding(2);
-            tabSimulation.Size = new Size(754, 361);
+            tabSimulation.Size = new Size(1090, 361);
             tabSimulation.TabIndex = 2;
             tabSimulation.Text = "Simulation";
             tabSimulation.UseVisualStyleBackColor = true;
@@ -881,7 +869,7 @@ namespace M18BatteryInfo
             tabDiagnostics.Margin = new Padding(2);
             tabDiagnostics.Name = "tabDiagnostics";
             tabDiagnostics.Padding = new Padding(2);
-            tabDiagnostics.Size = new Size(754, 361);
+            tabDiagnostics.Size = new Size(1090, 361);
             tabDiagnostics.TabIndex = 3;
             tabDiagnostics.Text = "Submit Diagnostics";
             tabDiagnostics.UseVisualStyleBackColor = true;
@@ -1028,7 +1016,7 @@ namespace M18BatteryInfo
             tabAbout.Margin = new Padding(2);
             tabAbout.Name = "tabAbout";
             tabAbout.Padding = new Padding(2);
-            tabAbout.Size = new Size(754, 361);
+            tabAbout.Size = new Size(1090, 361);
             tabAbout.TabIndex = 4;
             tabAbout.Text = "About";
             tabAbout.UseVisualStyleBackColor = true;
@@ -1229,6 +1217,5 @@ namespace M18BatteryInfo
         private Label lblKillaVoltAbout;
         private RichTextBox rtbDebugOutput;
         private Button btnTestFT232;
-        private Button btnTestEcho;
     }
 }

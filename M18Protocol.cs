@@ -375,11 +375,12 @@ namespace M18BatteryInfo
         public void send(byte[] command)
         {
             port.PurgeRx();
+            var logBytes = command.ToArray();
             var msb = command.Select(b => (byte)reverse_bits(b)).ToArray();
+
             if (PRINT_TX)
             {
-                var logBytes = msb.ToArray();
-                LogTx("Sending: " + BitConverter.ToString(logBytes).Replace("-", " "));
+                LogTx("Sending:  " + BitConverter.ToString(logBytes).Replace("-", " "));
             }
 
             port.WriteBytes(msb);

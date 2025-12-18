@@ -846,7 +846,7 @@ class M18:
         
         
         # turn off debugging messages
-        self.txrx_save_and_set(False)
+        self.txrx_save_and_set(True)
         
         try:
             print("Reading battery. This will take 5-10sec\n")

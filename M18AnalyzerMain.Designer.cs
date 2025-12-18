@@ -1,4 +1,14 @@
-﻿namespace M18BatteryInfo
+﻿// *************************************************************************************************
+// M18AnalyzerMain.Designer.cs
+// ---------------------------
+// Auto-generated WinForms designer file that declares and initializes every UI control used by
+// frmMain. The code positions buttons, text boxes, labels, tabs, and rich text boxes that the logic
+// in M18AnalyzerMain.cs interacts with. Although the designer typically omits comments, we include
+// them here to help beginners understand how InitializeComponent wires up control properties (size,
+// docking, events) and how the UI layout maps to protocol actions such as toggling TX lines and
+// reading health reports.
+// *************************************************************************************************
+namespace M18BatteryInfo
 {
     partial class frmMain
     {
@@ -28,96 +38,104 @@
         /// </summary>
         private void InitializeComponent()
         {
+            // InitializeComponent is responsible for instantiating every control, setting layout
+            // properties (Location, Size, Dock), attaching imagery/resources, and adding controls to
+            // parent containers. The sequence follows WinForms best practice: create child controls,
+            // configure them, then add them to their parent (e.g., GroupBox or TabPage). Comments are
+            // provided around major groups (Simple tab, Advanced tab, Simulation tab, Diagnostics tab,
+            // About tab) so readers understand how the UI maps to functionality described in
+            // M18AnalyzerMain.cs. WinForms uses absolute positioning here, so changing Size/Location
+            // adjusts pixel coordinates relative to parent containers.
             components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
-            tabControlM18Main = new TabControl();
-            tabSimple = new TabPage();
-            btnTestFT232 = new Button();
-            grpOutput = new GroupBox();
-            btnTestEcho = new Button();
-            btnCopyOutput = new Button();
-            btnReset = new Button();
-            btnHealthReport = new Button();
-            btnActive = new Button();
-            rtbOutput = new RichTextBox();
-            btnIdle = new Button();
-            btnDisconnect = new Button();
-            btnConnect = new Button();
-            btnRefresh = new Button();
-            lblSerialPort = new Label();
-            cmbBxSerialPort = new ComboBox();
-            tabAdvanced = new TabPage();
-            btnRestoreTxRxState = new Button();
-            grpTryCmd = new GroupBox();
-            txtTryCmdLength = new TextBox();
-            txtAddressLow = new TextBox();
-            txtAddressHigh = new TextBox();
-            lblTryCmdLength = new Label();
-            lblAddressLow = new Label();
-            lblAddrHigh = new Label();
-            lblCommand = new Label();
-            txtCommand = new TextBox();
-            grpbxDebugCmd = new GroupBox();
-            txtResponseLength = new TextBox();
-            txtDebugCmdLength = new TextBox();
-            txtAddrLSB = new TextBox();
-            lblResponseLength = new Label();
-            lblDebugCmdLength = new Label();
-            lblLSB = new Label();
-            lblMSB = new Label();
-            txtAddrMSB = new TextBox();
-            btnFullBrute = new Button();
-            btnBruteAddr = new Button();
-            btnSaveTxRxState = new Button();
-            chkboxRxLog = new CheckBox();
-            chkbxTXLog = new CheckBox();
-            txtWriteMessage = new TextBox();
-            btnWriteMessage = new Button();
-            btnReadIDLabelled = new Button();
-            btnReadIDRaw = new Button();
-            btnReadAllSpreadsheet = new Button();
-            btnReadAllRegisters = new Button();
-            rtbAdvOutput = new RichTextBox();
-            tabSimulation = new TabPage();
-            grpBxSimCustomProfile = new GroupBox();
-            lblCutoffRaw = new Label();
-            lblMaxCurrAmps = new Label();
-            txtMaxCurrAmps = new TextBox();
-            lblMaxCurrRaw = new Label();
-            txtCutoffAmps = new TextBox();
-            lblCutoffAmps = new Label();
-            txtMaxCurrRaw = new TextBox();
-            txtCutoffRaw = new TextBox();
-            txtSimDuration = new TextBox();
-            btnStopSim = new Button();
-            btnStartSim = new Button();
-            lblSimProfile = new Label();
-            lblBaudRate = new Label();
-            lblDuration = new Label();
-            cmbBxChgProfile = new ComboBox();
-            cmbBxBaudRate = new ComboBox();
-            tabDiagnostics = new TabPage();
-            btnClearDiagForm = new Button();
-            grpboxDiagOutput = new GroupBox();
-            rtbSubmitDiagReadOnly = new RichTextBox();
-            lblType = new Label();
-            lblStickerInfo = new Label();
-            lblToolSerialNum = new Label();
-            lblSubmitDiagDate = new Label();
-            lblOneKeyID = new Label();
-            txtSubmitDiagDate = new TextBox();
-            txtSubmitDiagSerial = new TextBox();
-            txtSubmitDiagSticker = new TextBox();
-            txtSubmitDiagType = new TextBox();
-            txtOneKeyID = new TextBox();
-            btnSubmitDiagForm = new Button();
-            tabAbout = new TabPage();
-            linkLabelKillaVolt = new LinkLabel();
-            lblKillaVoltAbout = new Label();
-            linkLabelMartin = new LinkLabel();
-            lblMartin = new Label();
-            lblAboutTitle = new Label();
-            toolTipSimpleTab = new ToolTip(components);
+            tabControlM18Main = new TabControl(); // Main tab control housing Simple/Advanced/Simulation/Diagnostics/About views.
+            tabSimple = new TabPage(); // User-friendly tab with core actions (connect, idle, active, health, reset).
+            btnTestFT232 = new Button(); // Button to perform FT232 hardware test (wired to btnTestFT232_Click).
+            grpOutput = new GroupBox(); // Group box holding primary log output and basic controls.
+            btnTestEcho = new Button(); // Button to trigger raw echo test; logic in M18AnalyzerMain.cs.
+            btnCopyOutput = new Button(); // Copies output log to clipboard for sharing.
+            btnReset = new Button(); // Issues reset handshake to battery.
+            btnHealthReport = new Button(); // Initiates health report read.
+            btnActive = new Button(); // Drives TX high (charger simulation).
+            rtbOutput = new RichTextBox(); // Rich text box showing simple log messages.
+            btnIdle = new Button(); // Drives TX low (idle).
+            btnDisconnect = new Button(); // Closes serial connection.
+            btnConnect = new Button(); // Opens serial connection.
+            btnRefresh = new Button(); // Refreshes COM port list.
+            lblSerialPort = new Label(); // Label describing serial port combo box.
+            cmbBxSerialPort = new ComboBox(); // Dropdown listing available COM ports.
+            tabAdvanced = new TabPage(); // Advanced tab for raw register reads/writes and debug logging.
+            btnRestoreTxRxState = new Button(); // Restores protocol logging preferences.
+            grpTryCmd = new GroupBox(); // Input fields for manually issuing commands (address/length).
+            txtTryCmdLength = new TextBox(); // Text box for specifying custom length.
+            txtAddressLow = new TextBox(); // LSB of address for TryCmd.
+            txtAddressHigh = new TextBox(); // MSB of address for TryCmd.
+            lblTryCmdLength = new Label(); // Label for custom length field.
+            lblAddressLow = new Label(); // Label for LSB field.
+            lblAddrHigh = new Label(); // Label for MSB field.
+            lblCommand = new Label(); // Label for command byte field.
+            txtCommand = new TextBox(); // Text box for command byte entry.
+            grpbxDebugCmd = new GroupBox(); // Debug command group for low-level reads.
+            txtResponseLength = new TextBox(); // Field for expected response length.
+            txtDebugCmdLength = new TextBox(); // Field for command length.
+            txtAddrLSB = new TextBox(); // LSB address input for debug command.
+            lblResponseLength = new Label(); // Label for response length.
+            lblDebugCmdLength = new Label(); // Label for debug command length.
+            lblLSB = new Label(); // Label identifying LSB text box.
+            lblMSB = new Label(); // Label identifying MSB text box.
+            txtAddrMSB = new TextBox(); // MSB address input for debug command.
+            btnFullBrute = new Button(); // Triggers brute-force address scan.
+            btnBruteAddr = new Button(); // Triggers targeted brute-force call.
+            btnSaveTxRxState = new Button(); // Saves current protocol logging flags.
+            chkboxRxLog = new CheckBox(); // Toggles RX logging.
+            chkbxTXLog = new CheckBox(); // Toggles TX logging.
+            txtWriteMessage = new TextBox(); // Input for raw message writing.
+            btnWriteMessage = new Button(); // Sends raw message.
+            btnReadIDLabelled = new Button(); // Reads ID registers with labels.
+            btnReadIDRaw = new Button(); // Reads raw ID registers.
+            btnReadAllSpreadsheet = new Button(); // Reads all registers for spreadsheet export.
+            btnReadAllRegisters = new Button(); // Reads entire register set.
+            rtbAdvOutput = new RichTextBox(); // Advanced output log box.
+            tabSimulation = new TabPage(); // Simulation tab for charge profile emulation.
+            grpBxSimCustomProfile = new GroupBox(); // Custom profile input group.
+            lblCutoffRaw = new Label(); // Label describing raw cutoff value textbox.
+            lblMaxCurrAmps = new Label(); // Label for maximum current in amps.
+            txtMaxCurrAmps = new TextBox(); // Maximum current (amps) input.
+            lblMaxCurrRaw = new Label(); // Label for raw maximum current field.
+            txtCutoffAmps = new TextBox(); // Cutoff current (amps) input.
+            lblCutoffAmps = new Label(); // Label for cutoff amps field.
+            txtMaxCurrRaw = new TextBox(); // Raw maximum current value input.
+            txtCutoffRaw = new TextBox(); // Raw cutoff current value input.
+            txtSimDuration = new TextBox(); // Simulation duration input.
+            btnStopSim = new Button(); // Button to stop simulation loop.
+            btnStartSim = new Button(); // Button to start simulation loop.
+            lblSimProfile = new Label(); // Label for profile dropdown.
+            lblBaudRate = new Label(); // Label for baud rate dropdown.
+            lblDuration = new Label(); // Label for duration input.
+            cmbBxChgProfile = new ComboBox(); // Predefined charging profiles.
+            cmbBxBaudRate = new ComboBox(); // Baud rate selection for simulation.
+            tabDiagnostics = new TabPage(); // Diagnostics tab for capturing user input in log format.
+            btnClearDiagForm = new Button(); // Clears diagnostics form fields.
+            grpboxDiagOutput = new GroupBox(); // Container for diagnostics output log.
+            rtbSubmitDiagReadOnly = new RichTextBox(); // Read-only diagnostics output box.
+            lblType = new Label(); // Label for battery type field.
+            lblStickerInfo = new Label(); // Label for sticker info field.
+            lblToolSerialNum = new Label(); // Label for tool serial number field.
+            lblSubmitDiagDate = new Label(); // Label for submission date field.
+            lblOneKeyID = new Label(); // Label for One-Key ID field.
+            txtSubmitDiagDate = new TextBox(); // Date input.
+            txtSubmitDiagSerial = new TextBox(); // Serial number input.
+            txtSubmitDiagSticker = new TextBox(); // Sticker info input.
+            txtSubmitDiagType = new TextBox(); // Type input.
+            txtOneKeyID = new TextBox(); // One-Key ID input.
+            btnSubmitDiagForm = new Button(); // Submits diagnostics info to output box.
+            tabAbout = new TabPage(); // About tab with credits.
+            linkLabelKillaVolt = new LinkLabel(); // Hyperlink to KillaVolt resources.
+            lblKillaVoltAbout = new Label(); // Label describing KillaVolt.
+            linkLabelMartin = new LinkLabel(); // Hyperlink to martin/other contributor.
+            lblMartin = new Label(); // Label describing martin's contributions.
+            lblAboutTitle = new Label(); // Title label for About tab.
+            toolTipSimpleTab = new ToolTip(components); // Tooltip component shared across controls.
             rtbDebugOutput = new RichTextBox();
             tabControlM18Main.SuspendLayout();
             tabSimple.SuspendLayout();

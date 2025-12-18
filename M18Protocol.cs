@@ -391,6 +391,8 @@ namespace M18BatteryInfo
                 msb[i] = ReverseBits(command[i]); // Reverse each byte so bits are transmitted MSB-first as device expects.
             }
 
+            LogDebug($"Sending raw wire bytes (MSB): {FormatBytes(msb)}. Logical bytes (LSB): {FormatBytes(command)}."); // Provide both wire and logical views for debugging.
+
             if (PrintTx)
             {
                 var builder = new StringBuilder(); // Build hex string for UI logging.
@@ -403,7 +405,7 @@ namespace M18BatteryInfo
                     }
                 }
 
-                var logMessage = $"TX: {builder}"; // Prefix with TX for disambiguation in UI.
+                var logMessage = $"Sending:  {builder}"; // Match Python log format for transmitted bytes.
                 TxLogger?.Invoke(logMessage); // Notify UI logger delegate to show in rich text box.
                 Console.WriteLine(logMessage); // Also emit to console (useful when running headless).
             }
@@ -463,38 +465,46 @@ namespace M18BatteryInfo
             }
 
             var msbResponse = new List<byte> { (byte)firstByte }; // Seed response with first MSB-ordered byte.
-            int remaining = ReverseBits((byte)firstByte) == 0x82 ? 1 : Math.Max(0, size - 1); // If first LSB byte equals 0x82 (after reversing), expect one more byte; otherwise size-1.
+            var lsbResponse = new List<byte> { ReverseBits((byte)firstByte) }; // Reverse immediately as Python does.
 
-            LogDebug($"First byte received (MSB): 0x{firstByte:X2}. Calculated remaining bytes to read: {remaining}."); // Trace first byte and expected remaining count.
+            int remaining = lsbResponse[0] == 0x82 ? 1 : Math.Max(0, size - 1); // Determine exact follow-up read size based on reversed first byte.
+
+            LogDebug($"First byte received. Raw (MSB): 0x{firstByte:X2}, reversed (LSB): 0x{lsbResponse[0]:X2}. Calculated remaining bytes to read: {remaining}."); // Trace first byte and expectation.
 
             if (remaining > 0)
             {
                 LogDebug($"Reading remaining {remaining} byte(s) from serial port."); // Note continuation.
-                msbResponse.AddRange(ReadAvailable(remaining)); // Read remaining bytes using buffered helper.
+                var remainingBytes = ReadAvailable(remaining).ToArray();
+                msbResponse.AddRange(remainingBytes);
+                foreach (var b in remainingBytes)
+                {
+                    lsbResponse.Add(ReverseBits(b));
+                }
             }
 
-            var lsbResponse = msbResponse.Select(ReverseBits).ToArray(); // Convert MSB-ordered bytes back to LSB representation for processing.
-
-            LogDebug($"Full response received (LSB): {FormatBytes(lsbResponse)}."); // Trace final decoded response.
+            LogDebug($"Full response wire bytes (MSB): {FormatBytes(msbResponse)}."); // Show raw bytes.
+            LogDebug($"Full response logical bytes (LSB): {FormatBytes(lsbResponse)}."); // Show reversed bytes.
 
             if (PrintRx)
             {
                 var builder = new StringBuilder(); // Build hex string for logs.
-                for (int i = 0; i < lsbResponse.Length; i++)
+                for (int i = 0; i < lsbResponse.Count; i++)
                 {
                     builder.Append(lsbResponse[i].ToString("X2")); // Append each byte in hex.
-                    if (i < lsbResponse.Length - 1)
+                    if (i < lsbResponse.Count - 1)
                     {
                         builder.Append(' '); // Separate with space.
                     }
                 }
 
-                var logMessage = $"RX: {builder}"; // Prefix to indicate receive direction.
+                var logMessage = $"Received: {builder}"; // Match Python log format for received bytes.
                 RxLogger?.Invoke(logMessage); // Notify UI logger delegate.
                 Console.WriteLine(logMessage); // Emit to console for CLI scenarios.
             }
 
-            return lsbResponse; // Return decoded payload to caller for further parsing.
+            Thread.Sleep(50); // Match Python delay after receiving bytes.
+
+            return lsbResponse.ToArray(); // Return decoded payload to caller for further parsing.
         }
 
         /// <summary>
@@ -529,14 +539,37 @@ namespace M18BatteryInfo
                 try
                 {
                     LogDebug("Awaiting reset response after SYNC byte."); // Trace waiting state.
-                    var response = ReadResponse(1); // Expect single byte echo.
-                    var success = response.Length > 0 && response[0] == SYNC_BYTE; // Evaluate acknowledgement.
-                    LogDebug($"Reset response {(success ? "acknowledged" : "did not match expected SYNC")}."); // Report result.
+                    int responseByte = _port.ReadByte(); // Read exactly one byte as Python does.
+                    if (responseByte < 0)
+                    {
+                        throw new InvalidOperationException("Empty response"); // Mirror Python exception semantics.
+                    }
+
+                    byte responseMsb = (byte)responseByte;
+                    byte responseLsb = ReverseBits(responseMsb);
+
+                    LogDebug($"Reset response wire byte (MSB): 0x{responseMsb:X2}. Reversed logical byte (LSB): 0x{responseLsb:X2}."); // Report raw and logical response.
+
+                    if (PrintRx)
+                    {
+                        var rxMessage = $"Received: {responseLsb:X2}"; // Match Python formatting for single-byte receive.
+                        RxLogger?.Invoke(rxMessage);
+                        Console.WriteLine(rxMessage);
+                    }
+
+                    Thread.Sleep(50); // Align with Python's post-read delay.
+
+                    var success = responseLsb == SYNC_BYTE; // Evaluate acknowledgement against reversed byte.
+                    LogDebug($"Reset response {(success ? "acknowledged" : "did not match expected SYNC")} after bit reversal."); // Report result.
                     if (success)
                     {
                         Thread.Sleep(10); // Brief pause to stabilize before further commands.
                         return true; // Signal reset success.
                     }
+                }
+                catch (TimeoutException ex)
+                {
+                    LogDebug($"Reset attempt {attempt} timed out waiting for response: {ex.GetType().Name} - {ex.Message}"); // Report timeout.
                 }
                 catch (InvalidOperationException ex)
                 {

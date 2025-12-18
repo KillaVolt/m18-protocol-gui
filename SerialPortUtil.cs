@@ -53,7 +53,7 @@ internal static class SerialPortUtil
     /// <summary>
     /// Enumerates serial ports using SetupAPI and returns metadata suitable for UI display. This helper
     /// remains to correlate FTDI serial numbers with COM port assignments for reference only; all I/O
-    /// now flows through System.IO.Ports.SerialPort.
+    /// now flows through RJCP.IO.Ports.SerialPortStream.
     /// </summary>
     /// <param name="debugLogger">Optional logger for verbose debug output.</param>
     /// <returns>Ordered list of serial port metadata.</returns>

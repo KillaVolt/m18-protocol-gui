@@ -1,22 +1,25 @@
 // *************************************************************************************************
 // SerialPortConnection.cs
 // -----------------------
-// Wraps System.IO.Ports.SerialPort with helper methods that mirror the subset of operations needed
-// by M18Protocol: opening the port with specific framing, toggling BREAK/DTR, purging buffers, and
-// reading/writing exact byte counts. The wrapper also supports an optional raw logger to surface
-// low-level serial actions to the UI without exposing SerialPort directly.
+// Wraps RJCP.IO.Ports.SerialPortStream with helper methods that mirror the subset of operations
+// needed by M18Protocol: opening the port with specific framing, toggling BREAK/DTR, purging
+// buffers, and reading/writing exact byte counts. The wrapper also supports an optional raw logger
+// to surface low-level serial actions to the UI without exposing SerialPortStream directly. RJCP
+// provides .NET 10 support and granular control-line handling that matches the Python reference
+// script, including manual Break/DTR and millisecond timeouts.
 // *************************************************************************************************
 
 using System;
 using System.Collections.Generic;
-using System.IO.Ports;
 using System.Linq;
+using System.Diagnostics;
+using RJCP.IO.Ports;
 
 namespace M18BatteryInfo;
 
 public sealed class SerialPortConnection : IDisposable
 {
-    private readonly SerialPort _serialPort;
+    private readonly SerialPortStream _serialPort;
     private Action<string>? _rawLogger;
 
     public SerialPortConnection(SerialPortDisplay device, Action<string>? rawLogger)
@@ -24,7 +27,7 @@ public sealed class SerialPortConnection : IDisposable
         Device = device;
         _rawLogger = rawLogger;
 
-        _serialPort = new SerialPort(device.PortName, 4800, Parity.None, 8, StopBits.Two)
+        _serialPort = new SerialPortStream(device.PortName, 4800, 8, Parity.None, StopBits.Two)
         {
             ReadTimeout = 800,
             WriteTimeout = 800,
@@ -32,7 +35,7 @@ public sealed class SerialPortConnection : IDisposable
             RtsEnable = false
         };
 
-        Log($"Opening {device.PortName} at 4800 8N2");
+        Log($"Opening {device.PortName} at 4800 8N2 using RJCP.SerialPortStream");
         _serialPort.Open();
         PurgeAll();
     }
@@ -69,6 +72,7 @@ public sealed class SerialPortConnection : IDisposable
     public void WriteBytes(byte[] data)
     {
         _serialPort.Write(data, 0, data.Length);
+        _serialPort.Flush(); // Ensure immediate transmission; mirrors Python's synchronous writes.
         Log($"SerialPort.Write {FormatHex(data)}");
     }
 
@@ -76,6 +80,7 @@ public sealed class SerialPortConnection : IDisposable
     {
         var buffer = new byte[count];
         var totalRead = 0;
+        var stopwatch = Stopwatch.StartNew();
         try
         {
             while (totalRead < count)
@@ -86,10 +91,11 @@ public sealed class SerialPortConnection : IDisposable
         }
         catch (TimeoutException ex)
         {
-            throw new InvalidOperationException($"SerialPort.Read timed out after reading {totalRead} of {count} byte(s)", ex);
+            throw new InvalidOperationException($"SerialPort.Read timed out after reading {totalRead} of {count} byte(s) over {stopwatch.ElapsedMilliseconds} ms", ex);
         }
 
-        Log($"SerialPort.Read count={count}, bytesRead={totalRead}, data={FormatHex(buffer.Take(totalRead))}");
+        stopwatch.Stop();
+        Log($"SerialPort.Read count={count}, bytesRead={totalRead}, elapsed={stopwatch.ElapsedMilliseconds}ms, data={FormatHex(buffer.Take(totalRead))}");
 
         if (totalRead < count)
         {

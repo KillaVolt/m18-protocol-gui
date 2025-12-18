@@ -6,7 +6,7 @@
 // ApplicationConfiguration to bootstrap high-DPI awareness and default fonts. The goal is to show
 // how a C# WinForms app starts, how STAThread is required for COM-based UI components, and where the
 // program transitions from the process boundary into user-interface code that eventually invokes
-// serial-protocol logic in M18Protocol.cs and USB enumeration utilities in SerialPortUtil.cs. Even
+// serial-protocol logic in M18Protocol.cs and USB enumeration utilities in FtdiDeviceUtil.cs. Even
 // though the logic is minimal, commenting every line reveals the basic structure of a .NET desktop
 // program for newcomers.
 // *************************************************************************************************
@@ -18,7 +18,7 @@ namespace M18BatteryInfo
     /// keep the symbol inside the assembly while still being discoverable by the runtime. It
     /// delegates all user interaction to <see cref="frmMain"/>, which wires up event handlers to
     /// the serial protocol layer (<see cref="M18Protocol"/>) and utility helpers
-    /// (<see cref="SerialPortUtil"/>) that talk to hardware.
+    /// (<see cref="FtdiDeviceUtil"/>) that talk to hardware.
     /// </summary>
     internal static class Program
     {
@@ -43,8 +43,8 @@ namespace M18BatteryInfo
             // (GetMessage/DispatchMessage under the hood) and will not exit until the form closes.
             // We construct frmMain, which is defined across M18AnalyzerMain.cs (logic) and
             // M18AnalyzerMain.Designer.cs (control layout). That form then interacts with
-            // M18Protocol.cs to toggle UART lines and read battery data, plus SerialPortUtil.cs to
-            // discover COM ports.
+            // M18Protocol.cs to toggle UART lines and read battery data, plus FtdiDeviceUtil.cs to
+            // discover FTDI devices.
             Application.Run(new frmMain());
         }
     }

@@ -265,34 +265,20 @@ namespace M18BatteryInfo
 
                 var ports = SerialPortUtil.EnumerateDetailedPorts();
                 var i = 1;
-                foreach (var p in ports)
+                var portId = 0;
+                foreach (var portEntry in ports)
                 {
-                    Console.WriteLine($"  {i}: {p.PortName} - {p.Manufacturer} - {p.FriendlyName ?? p.Description}");
+                    Console.WriteLine($"  {i}: {portEntry.PortName} - {portEntry.Manufacturer} - {portEntry.FriendlyName ?? portEntry.Description}");
                     i = i + 1;
                 }
 
-                var portId = 0;
-                while ((portId < 1) || (portId >= i))
-                {
-                    Console.Write($"Choose a port (1-{i - 1}): ");
-                    var userPort = Console.ReadLine();
-                    try
-                    {
-                        portId = int.Parse(userPort ?? string.Empty, CultureInfo.InvariantCulture);
-                    }
-                    catch (Exception)
-                    {
-                        Console.WriteLine("Invalid input. Please enter a number");
-                    }
-                }
-
-                var p = ports[portId - 1];
-                Console.WriteLine($"You selected \"{p.PortName} - {p.Manufacturer} - {p.FriendlyName ?? p.Description}\"");
-                Console.WriteLine($"In future, use \"m18.py --port {p.PortName}\" to avoid this menu");
+                var selectedPort = ports[portId - 1];
+                Console.WriteLine($"You selected \"{selectedPort.PortName} - {selectedPort.Manufacturer} - {selectedPort.FriendlyName ?? selectedPort.Description}\"");
+                Console.WriteLine($"In future, use \"m18.py --port {selectedPort.PortName}\" to avoid this menu");
                 Console.Write("Press Enter to continue");
                 Console.ReadLine();
 
-                portName = p.PortName;
+                portName = selectedPort.PortName;
             }
 
             port = new SerialPort(portName, 4800, Parity.None, 8, StopBits.Two)
@@ -347,7 +333,7 @@ namespace M18BatteryInfo
                 {
                     return true;
                 }
-                Console.WriteLine($"Unexpected response: {string.Join(\" \", GetHex(response))}");
+                Console.WriteLine($"Unexpected response: {string.Join(" ", GetHex(response))}");
                 return false;
             }
             catch (ValueError)
@@ -1169,7 +1155,7 @@ namespace M18BatteryInfo
                 {
                     j = idx;
                     var amp_range = $"{(idx - 18) * 10}-{(idx - 17) * 10}A";
-                    var label = $"Time @ {amp_range,>8}:";
+                    var label = $"Time @ {amp_range,8}:";
                     var t = Convert.ToInt32((array[idx] as List<object?>)?[1] ?? 0);
                     var hhmmss = TimeSpan.FromSeconds(t);
                     var pct = tool_time != 0 ? Math.Round((t / (double)tool_time) * 100) : 0;
@@ -1178,7 +1164,7 @@ namespace M18BatteryInfo
                 }
                 j += 1;
                 var lastAmp = "> 200A";
-                var lastLabel = $"Time @ {lastAmp,>8}:";
+                var lastLabel = $"Time @ {lastAmp,8}:";
                 var lastT = Convert.ToInt32((array[j] as List<object?>)?[1] ?? 0);
                 var lastHhmmss = TimeSpan.FromSeconds(lastT);
                 var lastPct = tool_time != 0 ? Math.Round((lastT / (double)tool_time) * 100) : 0;
@@ -1252,51 +1238,51 @@ namespace M18BatteryInfo
         // -------------------------------------
         public void help()
         {
-            Console.WriteLine("Functions: \n \
-            DIAGNOSTICS: \n \
-            m.health() - print simple health report on battery \n \
-            m.read_id() - print labelled and formatted diagnostics \n \
-            m.read_id(output=\"raw\") - print in spreadsheet format \n \
-            m.submit_form() - prompts for manual inputs and submits battery diagnostics data \n \
-            \n \
-            m.help() - this message\n \
-            m.adv_help() - advanced help\n \
-            \n \
-            exit() - end program\n");
+            Console.WriteLine("Functions: \n" +
+                "DIAGNOSTICS: \n" +
+                "m.health() - print simple health report on battery \n" +
+                "m.read_id() - print labelled and formatted diagnostics \n" +
+                "m.read_id(output=\"raw\") - print in spreadsheet format \n" +
+                "m.submit_form() - prompts for manual inputs and submits battery diagnostics data \n" +
+                "\n" +
+                "m.help() - this message\n" +
+                "m.adv_help() - advanced help\n" +
+                "\n" +
+                "exit() - end program\n");
         }
 
         public void adv_help()
         {
-            Console.WriteLine("Advanced functions: \n \
-            m.read_all() - print all known bytes in 0x01 command \n \
-            m.read_all_spreadsheet() - print bytes in spreadsheet format \n \
-            \n \
-            CHARGING SIMULATION: \n \
-            m.simulate() - simulate charging comms \n \
-            m.simulate_for(t) - simulate for t seconds \n \
-            m.high_for(t) - bring J2 high for t sec, then idle \n \
-            \n \
-            m.write_message(message) - write ascii string to 0x0023 register (20 chars)\n \
-            \n \
-            Debug: \n \
-            m.PRINT_TX = True - boolean to enable TX messages \n \
-            m.PRINT_RX = True - boolean to enable RX messages \n \
-            m.txrx_print(bool) - set PRINT_TX & RX to bool \n \
-            m.txrx_save_and_set(bool) - save PRINT_TX & RX state, then set both to bool \n \
-            m.txrx_restore() - restore PRINT_TX & RX to saved values \n \
-            m.brute(addr_msb, addr_lsb) \n \
-            m.full_brute(start, stop, len) - check registers from 'start' to 'stop'. look for 'len' bytes \n \
-            m.debug(addr_msb, addr_lsb, len, rsp_len) - send reset() then cmd() to battery \n \
-            m.try_cmd(cmd, addr_h, addr_l, len) - try 'cmd' at [addr_h addr_l] with 'len' bytes \n \
-            \n \
-            Internal:\n \
-            m.high() - bring J2 pin high (20V)\n \
-            m.idle() - pull J2 pin low (0V) \n \
-            m.reset() - send 0xAA to battery. Return true if battery replies wih 0xAA \n \
-            m.get_snapchat() - request 'snapchat' from battery (0x61)\n \
-            m.configure() - send 'configure' message (0x60, charger parameters)\n \
-            m.calibrate() - calibration/interrupt command (0x55) \n \
-            m.keepalive() - send charge current request (0x62) \n");
+            Console.WriteLine("Advanced functions: \n" +
+                "m.read_all() - print all known bytes in 0x01 command \n" +
+                "m.read_all_spreadsheet() - print bytes in spreadsheet format \n" +
+                "\n" +
+                "CHARGING SIMULATION: \n" +
+                "m.simulate() - simulate charging comms \n" +
+                "m.simulate_for(t) - simulate for t seconds \n" +
+                "m.high_for(t) - bring J2 high for t sec, then idle \n" +
+                "\n" +
+                "m.write_message(message) - write ascii string to 0x0023 register (20 chars)\n" +
+                "\n" +
+                "Debug: \n" +
+                "m.PRINT_TX = True - boolean to enable TX messages \n" +
+                "m.PRINT_RX = True - boolean to enable RX messages \n" +
+                "m.txrx_print(bool) - set PRINT_TX & RX to bool \n" +
+                "m.txrx_save_and_set(bool) - save PRINT_TX & RX state, then set both to bool \n" +
+                "m.txrx_restore() - restore PRINT_TX & RX to saved values \n" +
+                "m.brute(addr_msb, addr_lsb) \n" +
+                "m.full_brute(start, stop, len) - check registers from 'start' to 'stop'. look for 'len' bytes \n" +
+                "m.debug(addr_msb, addr_lsb, len, rsp_len) - send reset() then cmd() to battery \n" +
+                "m.try_cmd(cmd, addr_h, addr_l, len) - try 'cmd' at [addr_h addr_l] with 'len' bytes \n" +
+                "\n" +
+                "Internal:\n" +
+                "m.high() - bring J2 pin high (20V)\n" +
+                "m.idle() - pull J2 pin low (0V) \n" +
+                "m.reset() - send 0xAA to battery. Return true if battery replies wih 0xAA \n" +
+                "m.get_snapchat() - request 'snapchat' from battery (0x61)\n" +
+                "m.configure() - send 'configure' message (0x60, charger parameters)\n" +
+                "m.calibrate() - calibration/interrupt command (0x55) \n" +
+                "m.keepalive() - send charge current request (0x62) \n");
         }
     }
 }

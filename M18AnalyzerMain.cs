@@ -237,14 +237,14 @@ namespace M18BatteryInfo
 
             if (_protocol != null)
             {
-                if (string.Equals(_protocol.PortName, selectedPort.PortName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(_protocol.port.PortName, selectedPort.PortName, StringComparison.OrdinalIgnoreCase))
                 {
                     AppendLogBoth($"Port {selectedPort.PortName} is already open. Ignoring duplicate connect request."); // Avoid reopening same port.
                     MessageBox.Show($"{selectedPort.PortName} is already open.", "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Information); // Notify user.
                     return; // Exit without reopening.
                 }
 
-                AppendLogBoth($"A different port ({_protocol.PortName}) is currently open. Closing it before opening {selectedPort.PortName}..."); // Explain why we close first.
+                AppendLogBoth($"A different port ({_protocol.port.PortName}) is currently open. Closing it before opening {selectedPort.PortName}..."); // Explain why we close first.
                 await DisconnectAsync(); // Close current protocol instance to free COM port handle.
             }
 
@@ -255,7 +255,7 @@ namespace M18BatteryInfo
 
             try
             {
-                await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName, AppendDebugLog)); // Instantiate protocol off-UI thread; constructor opens SerialPort and drives TX idle.
+                await Task.Run(() => _protocol = new M18Protocol(selectedPort.PortName)); // Instantiate protocol off-UI thread; constructor opens SerialPort and drives TX idle.
                 ApplyProtocolLoggingPreferences(); // Sync checkbox states into protocol PrintTx/PrintRx and hook log delegates.
                 AppendLogBoth($"{selectedDescription} opened successfully."); // Confirm connection to user.
                 UpdateConnectionUi(true); // Toggle button enabled states to reflect connected status.
@@ -297,16 +297,23 @@ namespace M18BatteryInfo
                 return; // Exit early when nothing to close.
             }
 
-            AppendLogBoth($"Closing {_protocol.PortName}..."); // Inform user which COM port is closing.
+            AppendLogBoth($"Closing {_protocol.port.PortName}..."); // Inform user which COM port is closing.
 
             try
             {
-                await Task.Run(() => _protocol.Close()); // Execute Close on background thread; sets TX idle then disposes SerialPort.
-                AppendLogBoth($"{_protocol.PortName} closed successfully."); // Confirm closure.
+                await Task.Run(() =>
+                {
+                    if (_protocol.port.IsOpen)
+                    {
+                        _protocol.idle(); // Set TX to idle (safe state) before closing.
+                        _protocol.port.Close(); // Close the underlying SerialPort.
+                    }
+                }); // Execute Close on background thread; sets TX idle then disposes SerialPort.
+                AppendLogBoth($"{_protocol.port.PortName} closed successfully."); // Confirm closure.
             }
             catch (Exception ex)
             {
-                LogError($"Error while closing {_protocol.PortName}.", ex); // Report exceptions thrown during close.
+                LogError($"Error while closing {_protocol.port.PortName}.", ex); // Report exceptions thrown during close.
             }
             finally
             {
@@ -331,9 +338,11 @@ namespace M18BatteryInfo
             AppendDebugLog(FormatLogMessage("Invoking _protocol.Idle() to drive TX low.")); // Explain electrical effect.
             try
             {
-                await Task.Run(() => _protocol!.Idle()); // Background call to avoid UI hiccup; Idle toggles BreakState/DTR.
+                await Task.Run(() => _protocol!.idle()); // Background call to avoid UI hiccup; idle toggles BreakState/DTR.
                 AppendLogBoth("TX set to Idle (low). Safe to connect or disconnect battery."); // Teach user about safe state.
-                AppendDebugLog(FormatLogMessage(_protocol!.GetTxStateSummary("Idle"))); // Log resulting control-line states.
+                AppendDebugLog(FormatLogMessage(
+                    $"TX State after Idle: BreakState={_protocol!.port.BreakState}, DtrEnable={_protocol.port.DtrEnable}, RtsEnable={_protocol.port.RtsEnable}"
+                )); // Log resulting control-line states.
             }
             catch (Exception ex)
             {
@@ -357,9 +366,11 @@ namespace M18BatteryInfo
             AppendDebugLog(FormatLogMessage("Invoking _protocol.High() to drive TX high.")); // Clarify electrical behavior.
             try
             {
-                await Task.Run(() => _protocol!.High()); // Toggle control lines on background thread.
+                await Task.Run(() => _protocol!.high()); // Toggle control lines on background thread.
                 AppendLogBoth("TX set to Active (high). Charger simulation enabled."); // Show user the state change.
-                AppendDebugLog(FormatLogMessage(_protocol!.GetTxStateSummary("High"))); // Record final TX states.
+                AppendDebugLog(FormatLogMessage(
+                    $"TX State after High: BreakState={_protocol!.port.BreakState}, DtrEnable={_protocol.port.DtrEnable}, RtsEnable={_protocol.port.RtsEnable}"
+                )); // Log resulting control-line states.
             }
             catch (Exception ex)
             {
@@ -383,7 +394,19 @@ namespace M18BatteryInfo
             try
             {
                 AppendDebugLog(FormatLogMessage("Starting health report collection (mirrors m18.py health()).")); // Note parity with Python script.
-                var report = await Task.Run(() => _protocol!.HealthReport()); // Run heavy register reads off UI thread.
+                var report = await Task.Run(() =>
+                {
+                    // Use the existing health() method and capture its output.
+                    // We'll redirect Console output to a string.
+                    using (var sw = new System.IO.StringWriter())
+                    {
+                        var originalOut = Console.Out;
+                        Console.SetOut(sw);
+                        _protocol!.health(true); // Call the health method (force_refresh: true)
+                        Console.SetOut(originalOut);
+                        return sw.ToString();
+                    }
+                }); // Run heavy register reads off UI thread.
                 AppendLog("=== Health report ==="); // Header in simple log.
                 foreach (var line in report.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
                 {
@@ -394,7 +417,7 @@ namespace M18BatteryInfo
             }
             catch (Exception ex)
             {
-                LogError("Health report failed.", ex); // Surface exceptions (timeouts, parsing errors).
+                LogError("Health report failed.", ex); // Surface exceptions (timeout, parsing errors).
             }
         }
 
@@ -413,7 +436,7 @@ namespace M18BatteryInfo
             try
             {
                 AppendDebugLog("Sending reset sequence (BREAK/DTR + SYNC)."); // Explain protocol handshake.
-                var success = await Task.Run(() => _protocol!.Reset()); // Execute reset on worker thread; toggles control lines and reads response.
+                var success = await Task.Run(() => _protocol!.reset()); // Execute reset on worker thread; toggles control lines and reads response.
                 AppendLogBoth(success ? "Reset command acknowledged by device." : "Reset command did not receive expected response."); // Inform user of result.
             }
             catch (Exception ex)
@@ -627,8 +650,8 @@ namespace M18BatteryInfo
                 return; // Nothing to configure if no active protocol.
             }
 
-            _protocol.PrintTx = chkbxTXLog.Checked; // Mirror checkbox to protocol flag controlling TX byte echo.
-            _protocol.PrintRx = chkboxRxLog.Checked; // Mirror checkbox to protocol flag controlling RX byte echo.
+            _protocol.PRINT_TX = chkbxTXLog.Checked; // Mirror checkbox to protocol flag controlling TX byte echo.
+            _protocol.PRINT_RX = chkboxRxLog.Checked; // Mirror checkbox to protocol flag controlling RX byte echo.
             _protocol.TxLogger = message =>
             {
                 AppendProtocolLog(message); // Route TX log messages into all log panes.
@@ -646,7 +669,7 @@ namespace M18BatteryInfo
         {
             if (_protocol != null)
             {
-                _protocol.PrintTx = chkbxTXLog.Checked; // Immediately reflect UI change in protocol.
+                _protocol.PRINT_TX = chkbxTXLog.Checked; // Immediately reflect UI change in protocol.
             }
         }
 
@@ -657,7 +680,7 @@ namespace M18BatteryInfo
         {
             if (_protocol != null)
             {
-                _protocol.PrintRx = chkboxRxLog.Checked; // Immediately reflect UI change in protocol.
+                _protocol.PRINT_RX = chkboxRxLog.Checked; // Immediately reflect UI change in protocol.
             }
         }
 
@@ -755,22 +778,22 @@ namespace M18BatteryInfo
         /// </summary>
         private void btnTestEcho_Click(object sender, EventArgs e)
         {
-            rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Starting raw echo test on COM{_protocol?.PortName ?? "??"}\n"); // Timestamp test start with chosen port name.
+            rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Starting raw echo test on COM{_protocol?.port.PortName ?? "??"}\n"); // Timestamp test start with chosen port name.
             try
             {
-                if (_protocol?.Port.IsOpen != true)
+                if (_protocol?.port.IsOpen != true)
                 {
                     rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Serial port not open. Connect first.\n"); // Warn user that port must be open.
                     return; // Exit early because no active SerialPort exists.
                 }
 
-                _protocol.Port.DiscardInBuffer(); // Clear inbound buffer to remove stale bytes before test.
+                _protocol.port.DiscardInBuffer(); // Clear inbound buffer to remove stale bytes before test.
 
                 byte[] send = { 0xAA }; // Single SYNC-like byte to transmit; echoed devices should return it.
-                _protocol.Port.Write(send, 0, 1); // Write to UART TX line; FT232 shifts bits out over USB-UART bridge.
+                _protocol.port.Write(send, 0, 1); // Write to UART TX line; FT232 shifts bits out over USB-UART bridge.
                 rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Sent byte 0xAA.\n"); // Confirm transmission to user.
 
-                int response = _protocol.Port.ReadByte(); // Block up to ReadTimeout waiting for one byte on RX.
+                int response = _protocol.port.ReadByte(); // Block up to ReadTimeout waiting for one byte on RX.
                 if (response >= 0)
                 {
                     rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Received byte: 0x{response:X2}\n"); // Show returned byte in hex for clarity.

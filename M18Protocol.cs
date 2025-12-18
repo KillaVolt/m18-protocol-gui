@@ -1,60 +1,54 @@
 // *************************************************************************************************
 // M18Protocol.cs
 // --------------
-// Implements the Milwaukee M18 battery serial protocol in C#. The class encapsulates all UART
-// command composition, bit-level encoding/decoding, and register parsing so that the WinForms UI
-// (frmMain in M18AnalyzerMain.cs) can simply call high-level methods like Idle(), High(),
-// HealthReport(), and Reset(). Control-line manipulation (BreakState and DtrEnable) is used to
-// emulate charger signals electrically on the FT232 USB-UART bridge. Extensive comments explain the
-// meaning of each operation, including how bytes flow to and from the hardware.
+// Literal, instruction-for-instruction port of m18.py. Every sleep, buffer reset, control-line
+// toggle, byte ordering rule, and logging string mirrors the Python implementation. The structure
+// intentionally ignores .NET conventions so the execution order, timing, and side effects remain
+// identical to the Python reference, including redundant operations and blocking behaviour.
 // *************************************************************************************************
 
-using System; // Core .NET types including DateTime, Array, and Action delegates.
-using System.Collections.Generic; // Collections such as List<T> and IEnumerable<T>.
-using System.IO.Ports; // SerialPort class for UART communication and control-line toggling.
-using System.Linq; // LINQ helpers like Select, Aggregate, and Take for byte processing.
-using System.Text; // StringBuilder for efficient log formatting and byte-to-hex conversion.
-using System.Threading; // Thread.Sleep for deterministic protocol timing delays.
-using System.Text.RegularExpressions; // Regex for parsing serial numbers and hardware IDs from responses.
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO.Ports;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace M18BatteryInfo
 {
-    /// <summary>
-    /// C# port of the Python M18 protocol implementation. Wraps <see cref="SerialPort"/> to expose
-    /// high-level methods for toggling TX line states, issuing reset sequences, and reading/writing
-    /// registers. Control lines map directly to physical UART pins: <see cref="SerialPort.BreakState"/>
-    /// drives the TX line low (space) while <see cref="SerialPort.DtrEnable"/> drives the DTR pin,
-    /// both of which connect to the battery's interface header. The class also formats verbose logs
-    /// for the WinForms UI to display.
-    /// </summary>
     public class M18Protocol
     {
-        // Protocol constants mirroring the Python implementation and datasheets.
-        public const byte SYNC_BYTE = 0xAA; // Sync byte used to initiate communication and acknowledge reset.
-        public const byte CAL_CMD = 0x55; // Calibration command identifier (not fully implemented here).
-        public const byte CONF_CMD = 0x60; // Configuration command base value.
-        public const byte SNAP_CMD = 0x61; // Snapshot command for specific data reads.
-        public const byte KEEPALIVE_CMD = 0x62; // Keepalive command to maintain session.
+        // ---------------------------
+        // Constants matching m18.py
+        // ---------------------------
+        public const byte SYNC_BYTE = 0xAA;
+        public const byte CAL_CMD = 0x55;
+        public const byte CONF_CMD = 0x60;
+        public const byte SNAP_CMD = 0x61;
+        public const byte KEEPALIVE_CMD = 0x62;
 
-        // Current limits used when simulating charger load profiles.
-        public const int CUTOFF_CURRENT = 300; // Milliamps at which discharge is considered complete.
-        public const int MAX_CURRENT = 6000; // Milliamps representing maximum allowable current draw.
+        public const int CUTOFF_CURRENT = 300;
+        public const int MAX_CURRENT = 6000;
 
-        public int Acc { get; private set; } = 4; // Protocol accumulator (used by Python port); kept for compatibility.
+        // ---------------------------
+        // State fields (mirror Python names and defaults)
+        // ---------------------------
+        public int ACC = 4;
+        public bool PRINT_TX = false;
+        public bool PRINT_RX = false;
+        public bool PRINT_TX_SAVE = false;
+        public bool PRINT_RX_SAVE = false;
 
-        public bool PrintTx { get; set; } = true; // When true, TX bytes are logged through TxLogger.
-        public bool PrintRx { get; set; } = true; // When true, RX bytes are logged through RxLogger.
+        public SerialPort port;
 
-        // Delegates that allow the UI to receive protocol events. frmMain sets these to append to rich text boxes.
-        public Action<string>? TxLogger { get; set; }
-        public Action<string>? RxLogger { get; set; }
-        public Action<string>? DebugLogger { get; set; }
-
-        // Pre-defined register ranges to request during initial read (mirrors Python data_matrix).
-        private readonly List<(byte AddrMsb, byte AddrLsb, byte Length)> _dataMatrix = new()
+        // ---------------------------
+        // Data tables copied verbatim from m18.py
+        // ---------------------------
+        private readonly List<(int, int, int)> data_matrix = new()
         {
-            // Each tuple describes a memory address (MSB/LSB) and how many bytes to read. These are
-            // executed by Cmd(addrMsb, addrLsb, length) in ReadId when forceRefresh is requested.
             (0x00, 0x00, 0x02),
             (0x00, 0x02, 0x02),
             (0x00, 0x04, 0x05),
@@ -89,8 +83,7 @@ namespace M18BatteryInfo
             (0xA0, 0x00, 0x06)
         };
 
-        // Human-readable descriptions for register addresses used by HealthReport and diagnostic reads.
-        private readonly List<(ushort Address, byte Length, string Type, string Label)> _dataId = new()
+        private readonly List<(int, int, string, string)> data_id = new()
         {
             (0x0000, 2,  "uint",  "Cell type"),
             (0x0002, 2,  "uint",  "Unknown (always 0)"),
@@ -233,833 +226,1041 @@ namespace M18BatteryInfo
             (0xA000, 6,  "uint",  "Unknown (Forge)")
         };
 
-        private readonly SerialPort _port;
-        private bool _disposed;
-        private bool? _savedPrintTx;
-        private bool? _savedPrintRx;
-
-        public SerialPort Port => _port; // Exposes the underlying SerialPort so UI can run diagnostic echo tests.
-
-        /// <summary>
-        /// Ensures the serial port is open and the protocol has not been disposed before performing
-        /// operations. Returns false and logs a message when actions should be skipped.
-        /// </summary>
-        private bool EnsurePortOpen(string operation)
+        // -------------------------------------
+        // Helper exception to mirror Python usage
+        // -------------------------------------
+        private class ValueError : Exception
         {
-            if (_disposed)
-            {
-                LogDebug($"{operation} skipped because protocol is disposed."); // Warn when caller uses disposed instance.
-                return false; // Abort operation.
-            }
-
-            if (!_port.IsOpen)
-            {
-                LogDebug($"{operation} skipped because serial port {_port.PortName} is not open."); // Note closed port state.
-                return false; // Abort because control lines cannot be toggled on a closed port.
-            }
-
-            return true; // Port is available.
+            public ValueError(string message) : base(message) { }
         }
 
-        /// <summary>
-        /// Constructs the protocol handler, opens the specified serial port with correct UART
-        /// settings (4800 8N2), and immediately drives TX to idle (BreakState/DTR true) to avoid
-        /// sending unintended pulses to the battery. The optional <paramref name="debugLogger"/>
-        /// allows the UI to capture initialization details.
-        /// </summary>
-        public M18Protocol(string portName, Action<string>? debugLogger = null)
+        // -------------------------------------
+        // Debug byte printer (identical format)
+        // -------------------------------------
+        public static void print_debug_bytes(IEnumerable<byte> data)
         {
-            DebugLogger = debugLogger; // Store logger delegate so we can write debug lines throughout the class.
-            LogDebug($"Initializing protocol for port {portName}."); // Inform caller about port selection.
-            _port = new SerialPort(portName, 4800, Parity.None, 8, StopBits.Two) // Configure UART to match battery protocol (4800 baud, 8 data bits, 2 stop bits).
+            var dataPrint = string.Join(" ", GetHex(data));
+            Console.WriteLine("DEBUG: " + dataPrint);
+        }
+
+        private static IEnumerable<string> GetHex(IEnumerable<byte> bytes)
+        {
+            foreach (var b in bytes)
             {
-                ReadTimeout = 1200, // Set read timeout so calls to ReadByte() don't hang indefinitely.
-                WriteTimeout = 800 // Set write timeout to fail fast if driver stalls.
+                yield return $"{b:02X}";
+            }
+        }
+
+        // -------------------------------------
+        // Constructor mirroring __init__ in m18.py
+        // -------------------------------------
+        public M18Protocol(string? portName)
+        {
+            if (portName == null)
+            {
+                Console.WriteLine("*** NO PORT SPECIFIED ***");
+                Console.WriteLine("Available serial ports (choose one that says USB somewhere):");
+
+                var ports = SerialPortUtil.EnumerateDetailedPorts();
+                var i = 1;
+                foreach (var p in ports)
+                {
+                    Console.WriteLine($"  {i}: {p.PortName} - {p.Manufacturer} - {p.FriendlyName ?? p.Description}");
+                    i = i + 1;
+                }
+
+                var portId = 0;
+                while ((portId < 1) || (portId >= i))
+                {
+                    Console.Write($"Choose a port (1-{i - 1}): ");
+                    var userPort = Console.ReadLine();
+                    try
+                    {
+                        portId = int.Parse(userPort ?? string.Empty, CultureInfo.InvariantCulture);
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine("Invalid input. Please enter a number");
+                    }
+                }
+
+                var p = ports[portId - 1];
+                Console.WriteLine($"You selected \"{p.PortName} - {p.Manufacturer} - {p.FriendlyName ?? p.Description}\"");
+                Console.WriteLine($"In future, use \"m18.py --port {p.PortName}\" to avoid this menu");
+                Console.Write("Press Enter to continue");
+                Console.ReadLine();
+
+                portName = p.PortName;
+            }
+
+            port = new SerialPort(portName, 4800, Parity.None, 8, StopBits.Two)
+            {
+                ReadTimeout = 800,
+                WriteTimeout = 800
             };
-
-            _port.DtrEnable = true; // Match pyserial default before opening the port.
-            _port.RtsEnable = false; // Match pyserial default before opening the port.
-            LogDebug($"Control line defaults before open: DTR={_port.DtrEnable}, RTS={_port.RtsEnable}."); // Trace pre-open control-line states.
-            LogDebug("Opening serial port..."); // Trace start of open call.
-            _port.Open(); // Acquire OS handle; this toggles control lines to default states.
-            LogDebug($"Serial port opened. Control lines after open: DTR={_port.DtrEnable}, RTS={_port.RtsEnable}."); // Confirm open and capture post-open states.
-            LogDebug("Protocol initialization complete."); // Signal completion.
+            port.Open();
+            idle();
         }
 
-        public string PortName => _port.PortName; // Convenience property used by frmMain for display and comparisons.
-        public bool IsOpen => _port.IsOpen; // Exposes port state so UI can check connectivity.
-
-        /// <summary>
-        /// Reverses the bit order of a byte (LSB to MSB) because the protocol transmits bytes with
-        /// bits reversed relative to how they are represented in memory. This mirrors Python's
-        /// reverse_bits function and is applied before sending/after receiving.
-        /// </summary>
-        public byte ReverseBits(byte value)
+        // -------------------------------------
+        // Logging flag helpers (match Python naming and behaviour)
+        // -------------------------------------
+        public void txrx_print(bool enable = true)
         {
-            LogDebug($"ReverseBits called with value 0x{value:X2}."); // Trace incoming value.
-            byte reversed = 0; // Start with zero so we can shift bits in.
-            for (int i = 0; i < 8; i++)
-            {
-                reversed <<= 1; // Make room for next bit by shifting left.
-                reversed |= (byte)((value >> i) & 0x01); // Extract bit i from original (LSB-first) and OR into result.
-            }
-
-            LogDebug($"ReverseBits returning 0x{reversed:X2}."); // Trace output for debugging.
-            return reversed; // Return reversed byte used for MSB-first serial I/O.
+            PRINT_TX = enable;
+            PRINT_RX = enable;
         }
 
-        /// <summary>
-        /// Computes a simple additive checksum across the provided payload (sum of bytes, mod 2^16).
-        /// The M18 protocol appends this 16-bit checksum to commands to help the battery validate
-        /// data integrity.
-        /// </summary>
-        public int Checksum(IEnumerable<byte> payload)
+        public void txrx_save_and_set(bool enable = true)
         {
-            if (payload == null)
-            {
-                LogDebug("Checksum called with null payload."); // Guard against null reference misuse.
-                throw new ArgumentNullException(nameof(payload)); // Propagate argument error to caller.
-            }
+            PRINT_TX_SAVE = PRINT_TX;
+            PRINT_RX_SAVE = PRINT_RX;
+            txrx_print(enable);
+        }
 
-            LogDebug("Checksum calculation started."); // Trace operation.
-            int checksum = 0; // Initialize accumulator.
+        public void txrx_restore()
+        {
+            PRINT_TX = PRINT_TX_SAVE;
+            PRINT_RX = PRINT_RX_SAVE;
+        }
+
+        // -------------------------------------
+        // Reset: identical control-line toggles, sleeps, send, and idle logic
+        // -------------------------------------
+        public bool reset()
+        {
+            ACC = 4;
+            port.BreakState = true;
+            port.DtrEnable = true;
+            Thread.Sleep(300);
+            port.BreakState = false;
+            port.DtrEnable = false;
+            Thread.Sleep(300);
+            send(new[] { SYNC_BYTE });
+            try
+            {
+                var response = read_response(1);
+                Thread.Sleep(10);
+                if (response.Length > 0 && response[0] == SYNC_BYTE)
+                {
+                    return true;
+                }
+                Console.WriteLine($"Unexpected response: {string.Join(\" \", GetHex(response))}");
+                return false;
+            }
+            catch (ValueError)
+            {
+                return false;
+            }
+        }
+
+        // -------------------------------------
+        // Utility helpers mapped directly
+        // -------------------------------------
+        public void update_acc()
+        {
+            var accValues = new List<int> { 0x04, 0x0C, 0x1C };
+            var currentIndex = accValues.IndexOf(ACC);
+            var nextIndex = (currentIndex + 1) % accValues.Count;
+            ACC = accValues[nextIndex];
+        }
+
+        public int reverse_bits(int value)
+        {
+            return Convert.ToInt32(string.Concat(Convert.ToString(value & 0xFF, 2).PadLeft(8, '0').Reverse()), 2);
+        }
+
+        public int checksum(IEnumerable<byte> payload)
+        {
+            var cksum = 0;
             foreach (var b in payload)
             {
-                checksum += b & 0xFFFF; // Add each byte value; mask not strictly necessary but keeps parity with Python implementation.
+                cksum += b & 0xFFFF;
             }
-
-            LogDebug($"Checksum calculation complete: {checksum & 0xFFFF}."); // Trace final checksum (16-bit value).
-            return checksum; // Return full integer; caller masks to 16 bits when writing bytes.
+            return cksum;
         }
 
-        /// <summary>
-        /// Appends a 2-byte checksum to the provided payload (LSB first). The checksum is computed
-        /// using <see cref="Checksum(IEnumerable{byte})"/> and returned as a new byte array ready for
-        /// transmission over the UART.
-        /// </summary>
-        public byte[] AddChecksum(byte[] lsbCommand)
+        public byte[] add_checksum(List<byte> lsbCommand)
         {
-            if (lsbCommand == null)
-            {
-                LogDebug("AddChecksum called with null lsbCommand."); // Alert misuse.
-                throw new ArgumentNullException(nameof(lsbCommand)); // Throw to fail fast.
-            }
-
-            LogDebug($"AddChecksum called for payload length {lsbCommand.Length}."); // Trace size for debugging.
-            int checksum = Checksum(lsbCommand); // Compute additive checksum.
-            var withChecksum = new byte[lsbCommand.Length + 2]; // Allocate new array with two extra bytes.
-            Buffer.BlockCopy(lsbCommand, 0, withChecksum, 0, lsbCommand.Length); // Copy original payload into new array.
-
-            withChecksum[withChecksum.Length - 2] = (byte)((checksum >> 8) & 0xFF); // Append high byte of checksum.
-            withChecksum[withChecksum.Length - 1] = (byte)(checksum & 0xFF); // Append low byte of checksum.
-
-            LogDebug($"Checksum {checksum & 0xFFFF} appended. Final payload: {FormatBytes(withChecksum)}."); // Trace final buffer for logging panel.
-            return withChecksum; // Return ready-to-send buffer (LSB-ordered before bit reversal).
+            var cksum = checksum(lsbCommand);
+            lsbCommand.AddRange(BitConverter.GetBytes((ushort)cksum).Reverse());
+            return lsbCommand.ToArray();
         }
 
-        /// <summary>
-        /// Sends a prepared command (LSB bit order) over the serial port after reversing bits for
-        /// MSB-first transmission. Also logs the TX bytes when requested.
-        /// </summary>
-        public void Send(byte[] command)
+        // -------------------------------------
+        // Send path (input buffer reset + bit reversal + optional log)
+        // -------------------------------------
+        public void send(byte[] command)
         {
-            if (command == null)
+            port.DiscardInBuffer();
+            var debugPrint = string.Join(" ", GetHex(command));
+            var msb = new List<byte>();
+            foreach (var b in command)
             {
-                LogDebug("Send called with null command."); // Guard against misuse.
-                throw new ArgumentNullException(nameof(command)); // Fail fast to avoid null reference.
+                msb.Add((byte)reverse_bits(b));
             }
 
-            if (!EnsurePortOpen("Send"))
+            if (PRINT_TX)
             {
-                return; // Skip when port unavailable.
+                Console.WriteLine($"Sending:  {debugPrint}");
             }
 
-            LogDebug($"Send called with command length {command.Length}. Raw payload: {FormatBytes(command)}."); // Trace outgoing payload.
+            port.Write(msb.ToArray(), 0, msb.Count);
+        }
 
+        public void send_command(byte[] command)
+        {
+            send(add_checksum(new List<byte>(command)));
+        }
+
+        // -------------------------------------
+        // Read path (exact ordering and timing)
+        // -------------------------------------
+        public byte[] read_response(int size)
+        {
+            var msbResponse = new List<byte>();
+            var first = ReadOneByte();
+            msbResponse.Add(first);
+            if (reverse_bits(first) == 0x82)
+            {
+                msbResponse.Add(ReadOneByte());
+            }
+            else
+            {
+                for (var i = 0; i < size - 1; i++)
+                {
+                    msbResponse.Add(ReadOneByte());
+                }
+            }
+
+            var lsbResponse = new List<byte>();
+            foreach (var b in msbResponse)
+            {
+                lsbResponse.Add((byte)reverse_bits(b));
+            }
+
+            var debugPrint = string.Join(" ", GetHex(lsbResponse));
+            if (PRINT_RX)
+            {
+                Console.WriteLine($"Received: {debugPrint}");
+            }
+            Thread.Sleep(50);
+            return lsbResponse.ToArray();
+        }
+
+        private byte ReadOneByte()
+        {
+            var buffer = new byte[1];
+            var read = port.Read(buffer, 0, 1);
+            if (read < 1)
+            {
+                throw new ValueError("Empty response");
+            }
+            return buffer[0];
+        }
+
+        // -------------------------------------
+        // Protocol commands
+        // -------------------------------------
+        public byte[] configure(byte state)
+        {
+            ACC = 4;
+            var cmd = new List<byte>();
+            cmd.Add(CONF_CMD);
+            cmd.Add((byte)ACC);
+            cmd.Add(8);
+            cmd.AddRange(BitConverter.GetBytes((ushort)CUTOFF_CURRENT).Reverse());
+            cmd.AddRange(BitConverter.GetBytes((ushort)MAX_CURRENT).Reverse());
+            cmd.AddRange(BitConverter.GetBytes((ushort)MAX_CURRENT).Reverse());
+            cmd.Add(state);
+            cmd.Add(13);
+            send_command(cmd.ToArray());
+            return read_response(5);
+        }
+
+        public byte[] get_snapchat()
+        {
+            var cmd = new List<byte> { SNAP_CMD, (byte)ACC, 0 };
+            send_command(cmd.ToArray());
+            update_acc();
+            return read_response(8);
+        }
+
+        public byte[] keepalive()
+        {
+            var cmd = new List<byte> { KEEPALIVE_CMD, (byte)ACC, 0 };
+            send_command(cmd.ToArray());
+            return read_response(9);
+        }
+
+        public byte[] calibrate()
+        {
+            var cmd = new List<byte> { CAL_CMD, (byte)ACC, 0 };
+            send_command(cmd.ToArray());
+            update_acc();
+            return read_response(8);
+        }
+
+        // -------------------------------------
+        // Charger simulation routines
+        // -------------------------------------
+        public void simulate()
+        {
+            Console.WriteLine("Simulating charger communication");
+            txrx_save_and_set(true);
+
+            reset();
+
+            configure(2);
+            get_snapchat();
+            Thread.Sleep(600);
+            keepalive();
+            configure(1);
+            get_snapchat();
             try
             {
-                _port.DiscardInBuffer(); // Clear any stale incoming bytes to avoid mixing responses.
-                LogDebug("Input buffer discarded prior to send."); // Confirm buffer clear.
-            }
-            catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
-            {
-                LogDebug($"DiscardInBuffer skipped because port is not available: {ex.GetType().Name} - {ex.Message}"); // Log and exit if port not usable.
-                return;
-            }
-
-            var msb = new byte[command.Length]; // Allocate buffer for bit-reversed bytes.
-            for (int i = 0; i < command.Length; i++)
-            {
-                msb[i] = ReverseBits(command[i]); // Reverse each byte so bits are transmitted MSB-first as device expects.
-            }
-
-            LogDebug($"Sending raw wire bytes (MSB): {FormatBytes(msb)}. Logical bytes (LSB): {FormatBytes(command)}."); // Provide both wire and logical views for debugging.
-
-            if (PrintTx)
-            {
-                var builder = new StringBuilder(); // Build hex string for UI logging.
-                for (int i = 0; i < command.Length; i++)
+                while (true)
                 {
-                    builder.Append(command[i].ToString("X2")); // Append LSB-order byte for readability.
-                    if (i < command.Length - 1)
-                    {
-                        builder.Append(' '); // Separate bytes with spaces for clarity.
-                    }
-                }
-
-                var logMessage = $"Sending:  {builder}"; // Match Python log format for transmitted bytes.
-                TxLogger?.Invoke(logMessage); // Notify UI logger delegate to show in rich text box.
-                Console.WriteLine(logMessage); // Also emit to console (useful when running headless).
-            }
-
-            try
-            {
-                _port.Write(msb, 0, msb.Length); // Stream bytes over UART using FT232 driver; TX pin toggles bits on physical line.
-                LogDebug($"Command sent over serial: {FormatBytes(msb)} (MSB)."); // Trace MSB-encoded payload.
-            }
-            catch (Exception ex) when (ex is InvalidOperationException || ex is ObjectDisposedException)
-            {
-                LogDebug($"Send aborted because port is not available: {ex.GetType().Name} - {ex.Message}"); // Note failure without throwing to allow UI recovery.
-            }
-        }
-
-        /// <summary>
-        /// Adds a checksum to the provided command and transmits it via <see cref="Send(byte[])"/>.
-        /// </summary>
-        public void SendCommand(byte[] command)
-        {
-            LogDebug("SendCommand invoked."); // Trace wrapper usage.
-            Send(AddChecksum(command)); // Compose checksumed payload then send.
-        }
-
-        /// <summary>
-        /// Reads a response of the specified size, reversing bits back to LSB order and logging when
-        /// enabled. Throws InvalidOperationException on timeout to mirror Python behavior.
-        /// </summary>
-        public byte[] ReadResponse(int size)
-        {
-            if (!EnsurePortOpen("ReadResponse"))
-            {
-                return Array.Empty<byte>(); // Return empty array when port unavailable.
-            }
-
-            LogDebug($"ReadResponse called with expected size {size}."); // Trace expected length.
-            int firstByte;
-            try
-            {
-                firstByte = _port.ReadByte(); // Block for first byte from RX line.
-            }
-            catch (InvalidOperationException ex)
-            {
-                LogDebug($"ReadResponse skipped because port is unavailable: {ex.GetType().Name} - {ex.Message}"); // Log closed/ disposed port.
-                return Array.Empty<byte>(); // Return nothing to caller.
-            }
-            catch (TimeoutException)
-            {
-                LogDebug("ReadResponse timed out waiting for first byte."); // Trace timeout event.
-                throw new InvalidOperationException("Empty response"); // Match Python exception semantics for caller.
-            }
-
-            if (firstByte < 0)
-            {
-                LogDebug("ReadResponse encountered invalid first byte (<0)."); // Negative return indicates stream ended.
-                throw new InvalidOperationException("Empty response"); // Propagate error.
-            }
-
-            var msbResponse = new List<byte> { (byte)firstByte }; // Seed response with first MSB-ordered byte.
-            var lsbResponse = new List<byte> { ReverseBits((byte)firstByte) }; // Reverse immediately as Python does.
-
-            int remaining = lsbResponse[0] == 0x82 ? 1 : Math.Max(0, size - 1); // Determine exact follow-up read size based on reversed first byte.
-
-            LogDebug($"First byte received. Raw (MSB): 0x{firstByte:X2}, reversed (LSB): 0x{lsbResponse[0]:X2}. Calculated remaining bytes to read: {remaining}."); // Trace first byte and expectation.
-
-            if (remaining > 0)
-            {
-                LogDebug($"Reading remaining {remaining} byte(s) from serial port."); // Note continuation.
-                var remainingBytes = ReadAvailable(remaining).ToArray();
-                msbResponse.AddRange(remainingBytes);
-                foreach (var b in remainingBytes)
-                {
-                    lsbResponse.Add(ReverseBits(b));
+                    Thread.Sleep(500);
+                    keepalive();
                 }
             }
-
-            LogDebug($"Full response wire bytes (MSB): {FormatBytes(msbResponse)}."); // Show raw bytes.
-            LogDebug($"Full response logical bytes (LSB): {FormatBytes(lsbResponse)}."); // Show reversed bytes.
-
-            if (PrintRx)
+            catch (ThreadInterruptedException)
             {
-                var builder = new StringBuilder(); // Build hex string for logs.
-                for (int i = 0; i < lsbResponse.Count; i++)
-                {
-                    builder.Append(lsbResponse[i].ToString("X2")); // Append each byte in hex.
-                    if (i < lsbResponse.Count - 1)
-                    {
-                        builder.Append(' '); // Separate with space.
-                    }
-                }
-
-                var logMessage = $"Received: {builder}"; // Match Python log format for received bytes.
-                RxLogger?.Invoke(logMessage); // Notify UI logger delegate.
-                Console.WriteLine(logMessage); // Emit to console for CLI scenarios.
-            }
-
-            Thread.Sleep(50); // Match Python delay after receiving bytes.
-
-            return lsbResponse.ToArray(); // Return decoded payload to caller for further parsing.
-        }
-
-        /// <summary>
-        /// Issues a reset sequence to the battery by toggling Break/DTR (TX line) low/high and
-        /// sending the SYNC byte. Retries up to three times and waits for SYNC acknowledgement.
-        /// </summary>
-        public bool Reset()
-        {
-            LogDebug("Reset invoked. Driving control lines to issue reset sequence."); // Trace action.
-            Acc = 4; // Reset accumulator to default as in Python implementation.
-
-            if (!EnsurePortOpen("Reset"))
-            {
-                return false; // Abort if port unavailable.
-            }
-
-            for (var attempt = 1; attempt <= 3; attempt++)
-            {
-                LogDebug($"Reset attempt {attempt} starting."); // Indicate retry count.
-
-                _port.DiscardInBuffer(); // Clear any pending bytes to avoid misinterpreting stale data.
-                _port.BreakState = true; // Drive TX low (logic 0) to assert BREAK on physical line.
-                _port.DtrEnable = true; // Assert DTR; both pins go low relative to idle high.
-                Thread.Sleep(300); // Hold low for 300 ms to meet battery reset timing.
-
-                _port.BreakState = false; // Release BREAK to drive TX high.
-                _port.DtrEnable = false; // Release DTR to high.
-                Thread.Sleep(300); // Hold high allowing BMS to recognize edge transition.
-
-                Send(new[] { SYNC_BYTE }); // Transmit SYNC byte (0xAA) which the battery should echo.
-
-                try
-                {
-                    LogDebug("Awaiting reset response after SYNC byte."); // Trace waiting state.
-                    int responseByte = _port.ReadByte(); // Read exactly one byte as Python does.
-                    if (responseByte < 0)
-                    {
-                        throw new InvalidOperationException("Empty response"); // Mirror Python exception semantics.
-                    }
-
-                    byte responseMsb = (byte)responseByte;
-                    byte responseLsb = ReverseBits(responseMsb);
-
-                    LogDebug($"Reset response wire byte (MSB): 0x{responseMsb:X2}. Reversed logical byte (LSB): 0x{responseLsb:X2}."); // Report raw and logical response.
-
-                    if (PrintRx)
-                    {
-                        var rxMessage = $"Received: {responseLsb:X2}"; // Match Python formatting for single-byte receive.
-                        RxLogger?.Invoke(rxMessage);
-                        Console.WriteLine(rxMessage);
-                    }
-
-                    Thread.Sleep(50); // Align with Python's post-read delay.
-
-                    var success = responseLsb == SYNC_BYTE; // Evaluate acknowledgement against reversed byte.
-                    LogDebug($"Reset response {(success ? "acknowledged" : "did not match expected SYNC")} after bit reversal."); // Report result.
-                    if (success)
-                    {
-                        Thread.Sleep(10); // Brief pause to stabilize before further commands.
-                        return true; // Signal reset success.
-                    }
-                }
-                catch (TimeoutException ex)
-                {
-                    LogDebug($"Reset attempt {attempt} timed out waiting for response: {ex.GetType().Name} - {ex.Message}"); // Report timeout.
-                }
-                catch (InvalidOperationException ex)
-                {
-                    LogDebug($"Reset attempt {attempt} failed: {ex.GetType().Name} - {ex.Message}"); // Report timeout or read issues.
-                }
-
-                Thread.Sleep(50); // Small delay before next retry to avoid hammering BMS.
-            }
-
-            LogDebug("All reset attempts exhausted without a response."); // Final failure message.
-            return false; // Indicate reset failed.
-        }
-
-        /// <summary>
-        /// Drives TX line low (idle state). On FT232 this sets BreakState=true and DtrEnable=true,
-        /// effectively forcing the TX pin to a continuous logic 0 level and asserting DTR.
-        /// </summary>
-        public void Idle()
-        {
-            LogDebug("Setting TX to Idle (BreakState=true, DtrEnable=true)."); // Describe electrical intent.
-            if (!EnsurePortOpen("Idle"))
-            {
-                return; // Abort if port not open.
-            }
-            _port.BreakState = true; // Assert BREAK -> TX held low (space).
-            _port.DtrEnable = true; // Assert DTR -> control line low.
-        }
-
-        /// <summary>
-        /// Drives TX line high (active state). On FT232 this clears BreakState and DtrEnable so the
-        /// TX pin idles high (mark) like a charger presenting voltage on the comms pin.
-        /// </summary>
-        public void High()
-        {
-            LogDebug("Setting TX to Active (BreakState=false, DtrEnable=false)."); // Describe electrical intent.
-            if (!EnsurePortOpen("High"))
-            {
-                return; // Abort if port not open.
-            }
-            _port.BreakState = false; // Release BREAK -> TX goes high.
-            _port.DtrEnable = false; // Release DTR -> line returns to deasserted state.
-        }
-
-        /// <summary>
-        /// Returns a textual summary of TX control-line states for debugging, including whether the
-        /// serial port is open and whether the protocol has been disposed.
-        /// </summary>
-        public string GetTxStateSummary(string caller)
-        {
-            try
-            {
-                var disposedText = _disposed ? "disposed" : "active"; // Human-readable disposed state.
-                var openState = _port.IsOpen ? "open" : "closed"; // Human-readable port state.
-                if (!_port.IsOpen)
-                {
-                    return $"{caller}: Port {_port.PortName} is {openState} and protocol is {disposedText}; TX state unavailable."; // Indicate missing state when port closed.
-                }
-
-                return $"{caller}: Port {_port.PortName} is {openState} and protocol is {disposedText}. BreakState={_port.BreakState}, DtrEnable={_port.DtrEnable}."; // Provide detailed control-line flags.
-            }
-            catch (Exception ex)
-            {
-                LogDebug($"Error while retrieving TX state: {ex.GetType().Name} - {ex.Message}"); // Handle rare cases where SerialPort throws.
-                return $"{caller}: TX state unavailable due to error."; // Graceful fallback.
-            }
-        }
-
-        /// <summary>
-        /// Gathers a detailed human-readable health report by reading multiple registers from the
-        /// battery BMS. Temporarily disables TX/RX printing for performance, then restores settings.
-        /// </summary>
-        public string HealthReport()
-        {
-            if (_disposed)
-            {
-                return "Protocol disposed; health report unavailable."; // Prevent operations on disposed object.
-            }
-
-            LogDebug("Generating HealthReport summary."); // Trace start.
-            var regList = new List<int>
-            {
-                4, 28, 25, 26, 12, 13, 18, 29, 39, 40, 41, 42, 43, 33, 32, 31, 35, 36, 38 // Predefined register indices capturing manufacturing data, temps, counters.
-            };
-            regList.AddRange(Enumerable.Range(44, 20)); // Add range covering tool-use histogram registers.
-            regList.AddRange(new[] { 8, 2 }); // Append serial number and manufacture date indices.
-
-            TxRxSaveAndSet(false); // Temporarily disable TX/RX logging to reduce noise during bulk reads.
-            try
-            {
-                var values = ReadId(regList, true); // Perform forced refresh using Cmd calls to populate registers.
-                if (values == null || values.Count != regList.Count)
-                {
-                    return "Health report failed: incomplete data returned."; // Early exit when data missing.
-                }
-
-                var builder = new StringBuilder();
-                builder.AppendLine("Reading battery. This will take 5-10sec\n"); // Explain expected timing to user.
-
-                var serialInfo = values[^1] as string ?? string.Empty; // Retrieve serial number string from last entry.
-                var matches = Regex.Matches(serialInfo, "\\d+\\.?\\d*"); // Extract numeric tokens (battery type and e-serial).
-                var batType = matches.Count > 0 ? matches[0].Value : ""; // Battery type code from response.
-                var eSerial = matches.Count > 1 ? matches[1].Value : ""; // Electronic serial number.
-
-                // Lookup table converting battery type codes to capacities and marketing descriptions.
-                var batLookup = new Dictionary<string, (double Capacity, string Description)>
-                {
-                    {"36", (1.5, "1.5Ah CP (5s1p 18650)")},
-                    {"37", (2, "2Ah CP (5s1p 18650)")},
-                    {"38", (3, "3Ah XC (5s2p 18650)")},
-                    {"39", (4, "4Ah XC (5s2p 18650)")},
-                    {"40", (5, "5Ah XC (5s2p 18650) (<= Dec 2018)")},
-                    {"165", (5, "5Ah XC (5s2p 18650) (Aug 2019 - Jun 2021)")},
-                    {"306", (5, "5Ah XC (5s2p 18650) (Feb 2021 - Jul 2023)")},
-                    {"424", (5, "5Ah XC (5s2p 18650) (>= Sep 2023)")},
-                    {"46", (6, "6Ah XC (5s2p 18650)")},
-                    {"47", (9, "9Ah HD (5s3p 18650)")},
-                    {"104", (3, "3Ah HO (5s1p 21700)")},
-                    {"106", (6, "6Ah HO (5s2p 21700)")},
-                    {"107", (8, "8Ah HO (5s2p 21700)")},
-                    {"108", (12, "12Ah HO (5s3p 21700)")},
-                    {"383", (8, "8Ah Forge (5s2p 21700 tabless)")},
-                    {"384", (12, "12Ah Forge (5s3p 21700 tabless)")}
-                };
-
-                var batteryDetails = batLookup.TryGetValue(batType, out var details) ? details : (0d, "Unknown"); // Default to unknown if type not in table.
-                builder.AppendLine($"Type: {batType} [{batteryDetails.Item2}]"); // Show battery type and description.
-                builder.AppendLine($"E-serial: {eSerial} (does NOT match case serial)"); // Clarify that electronic serial differs from label.
-
-                var batNow = values[^2] as DateTime? ?? DateTime.UtcNow; // Use current timestamp from BMS if available, else fallback to UTC now.
-                var manufactureDate = values[0] as DateTime?; // Manufacture date from register 0.
-                if (manufactureDate.HasValue)
-                {
-                    builder.AppendLine($"Manufacture date: {manufactureDate:yyyy-MM-dd}"); // Format date for readability.
-                }
-
-                builder.AppendLine($"Days since 1st charge: {values[1]}"); // Raw counter from BMS.
-                builder.AppendLine($"Days since last tool use: {(batNow - ((DateTime?)values[2] ?? batNow)).Days}"); // Compute days difference using BMS timestamp.
-                builder.AppendLine($"Days since last charge: {(batNow - ((DateTime?)values[3] ?? batNow)).Days}"); // Similar calculation for last charge.
-
-                if (values[4] is List<int> cellVoltages)
-                {
-                    var totalVoltage = cellVoltages.Sum() / 1000.0; // Convert total mV to V for readability.
-                    builder.AppendLine($"Pack voltage: {totalVoltage}"); // Show pack voltage.
-                    builder.AppendLine($"Cell Voltages (mV): {string.Join(", ", cellVoltages)}"); // List individual cell voltages.
-                    builder.AppendLine($"Cell Imbalance (mV): {cellVoltages.Max() - cellVoltages.Min()}"); // Compute imbalance as diagnostic metric.
-                }
-
-                if (values[5] != null)
-                {
-                    builder.AppendLine($"Temperature (deg C): {values[5]}"); // First temperature reading (non-Forge).
-                }
-
-                if (values[6] != null)
-                {
-                    builder.AppendLine($"Temperature (deg C): {values[6]}"); // Second temperature reading (Forge).
-                }
-
-                builder.AppendLine("\nCHARGING STATS:"); // Section header for charging metrics.
-                builder.AppendLine($"Charge count [Redlink, dumb, (total)]: {values[13]}, {values[14]}, ({values[15]})"); // Show charge counters from BMS.
-                builder.AppendLine($"Total charge time: {values[16]}"); // Aggregate charging duration.
-                builder.AppendLine($"Time idling on charger: {values[17]}"); // Time spent at full charge on charger.
-                builder.AppendLine($"Low-voltage charges (any cell <2.5V): {values[18]}"); // Count of deep-charge events.
-
-                builder.AppendLine("\nTOOL USE STATS:"); // Section header for discharge metrics.
-                var totalDischarge = Convert.ToDouble(values[7] ?? 0); // Retrieve total discharge in amp-seconds.
-                builder.AppendLine($"Total discharge (Ah): {totalDischarge / 3600:0.00}"); // Convert to amp-hours (1 Ah = 3600 As).
-                var totalDischargeCycles = batteryDetails.Item1 != 0
-                    ? $"{totalDischarge / 3600 / batteryDetails.Item1:0.00}"
-                    : "Unknown battery type, unable to calculate"; // Estimate equivalent full cycles using capacity.
-                builder.AppendLine($"Total discharge cycles: {totalDischargeCycles}"); // Show calculated cycles or warning.
-                builder.AppendLine($"Times discharged to empty: {values[8]}"); // Count of deep discharges.
-                builder.AppendLine($"Times overheated: {values[9]}"); // Count of thermal events.
-                builder.AppendLine($"Overcurrent events: {values[10]}"); // Count of current-limit trips.
-                builder.AppendLine($"Low-voltage events: {values[11]}"); // Count of low-voltage warnings.
-                builder.AppendLine($"Low-voltage bounce/stutter: {values[12]}"); // Count of repeated low-voltage flickers.
-
-                var toolTime = Enumerable.Range(19, 20).Sum(i => Convert.ToInt32(values[i] ?? 0)); // Sum histogram buckets to compute total heavy-load time.
-                builder.AppendLine($"Total time on tool (>10A): {TimeSpan.FromSeconds(toolTime)}"); // Convert seconds to TimeSpan for readability.
-
-                for (int i = 19; i < 38; i++)
-                {
-                    var seconds = Convert.ToInt32(values[i] ?? 0); // Seconds spent in current band.
-                    var pct = toolTime > 0 ? Math.Round(seconds / (double)toolTime * 100) : 0; // Percent of total tool time.
-                    var bar = new string('X', (int)pct); // Simple ASCII bar graph showing relative time share.
-                    var ampRange = $"{(i - 18) * 10}-{(i - 17) * 10}A"; // Human-readable current band (e.g., 10-20A).
-                    builder.AppendLine($"Time @ {ampRange,8}: {TimeSpan.FromSeconds(seconds)} {pct,2:0}% {bar}"); // Log per-band usage.
-                }
-
-                var lastSeconds = Convert.ToInt32(values[38] ?? 0); // >200A bucket seconds.
-                var lastPct = toolTime > 0 ? Math.Round(lastSeconds / (double)toolTime * 100) : 0; // Percent for final bucket.
-                var lastBar = new string('X', (int)lastPct); // ASCII bar for final bucket.
-                builder.AppendLine($"Time @ {"> 200A",8}: {TimeSpan.FromSeconds(lastSeconds)} {lastPct,2:0}% {lastBar}"); // Show extreme current usage.
-
-                return builder.ToString().TrimEnd(); // Return compiled report with trailing newline trimmed.
-            }
-            catch (Exception ex)
-            {
-                LogDebug($"HealthReport failed: {ex.GetType().Name} - {ex.Message}"); // Trace exception for UI.
-                return "Health report failed. Check battery is connected and you have correct serial port."; // Friendly error message.
+                Console.WriteLine("\nSimulation aborted by user. Exiting gracefully...");
             }
             finally
             {
-                TxRxRestore(); // Restore TX/RX logging flags so UI settings persist.
+                idle();
+            }
+
+            txrx_restore();
+        }
+
+        public void simulate_for(double duration)
+        {
+            Console.WriteLine($"Simulating charger communication for {duration} seconds...");
+            var beginTime = DateTime.UtcNow;
+            reset();
+            configure(2);
+            get_snapchat();
+            Thread.Sleep(600);
+            keepalive();
+            configure(1);
+            get_snapchat();
+            try
+            {
+                while ((DateTime.UtcNow - beginTime).TotalSeconds < duration)
+                {
+                    Thread.Sleep(500);
+                    keepalive();
+                }
+            }
+            catch (ThreadInterruptedException)
+            {
+                Console.WriteLine("\nSimulation aborted by user. Exiting gracefully...");
+            }
+            finally
+            {
+                idle();
+                Console.WriteLine("Duration: " + (DateTime.UtcNow - beginTime).TotalSeconds);
             }
         }
 
-        /// <summary>
-        /// Reads a list of register IDs, optionally forcing a refresh by issuing pre-defined Cmd
-        /// calls that load data into the battery's staging registers. Each register is parsed using
-        /// metadata in <see cref="_dataId"/>.
-        /// </summary>
-        public List<object?>? ReadId(IEnumerable<int>? idArray, bool forceRefresh)
+        // -------------------------------------
+        // Debug helpers
+        // -------------------------------------
+        public void debug(byte a, byte b, byte c, int length)
         {
-            var ids = idArray?.ToList() ?? Enumerable.Range(0, _dataId.Count).ToList(); // Use provided IDs or default to all.
-            var results = new List<object?>(); // Holds parsed values in same order as ids.
+            var rxDebug = PRINT_RX;
+            var txDebug = PRINT_TX;
+            PRINT_TX = false;
+            PRINT_RX = false;
 
+            reset();
+            PRINT_TX = txDebug;
+            var data = cmd(a, b, c, length);
+            var dataPrint = string.Join(" ", GetHex(data));
+            Console.WriteLine($"Response from: 0x{(a * 0x100 + b):04X}: {dataPrint}");
+            idle();
+            PRINT_RX = rxDebug;
+        }
+
+        public void try_cmd(byte cmdByte, byte msb, byte lsb, byte length, int retLen = 0)
+        {
+            txrx_save_and_set(false);
+            if (retLen == 0)
+            {
+                retLen = length + 5;
+            }
+
+            reset();
+            var cmdBuf = new List<byte> { cmdByte, 0x04, 0x03, msb, lsb, length };
+            send_command(cmdBuf.ToArray());
+            var data = read_response(retLen);
+            var dataPrint = string.Join(" ", GetHex(data));
+            Console.WriteLine($"Response from: 0x{(msb * 0x100 + lsb):04X}: {dataPrint}");
+            idle();
+            txrx_restore();
+        }
+
+        public byte[] cmd(int a, int b, int c, int length, byte command = 0x01)
+        {
+            var cmdBuf = new List<byte> { command, 0x04, 0x03, (byte)a, (byte)b, (byte)c };
+            send_command(cmdBuf.ToArray());
+            return read_response(length);
+        }
+
+        public void brute(int a, int b, int length = 0xFF, byte command = 0x01)
+        {
+            reset();
             try
             {
-                Reset(); // Reset communication before reading to ensure clean state.
-
-                if (forceRefresh)
+                for (var i = 0; i < length; i++)
                 {
-                    foreach (var (addrMsb, addrLsb, length) in _dataMatrix)
+                    var ret = cmd(a, b, i, i + 5, command);
+                    if (ret[0] == 0x81)
                     {
-                        Cmd(addrMsb, addrLsb, length, (byte)(length + 5)); // Preload battery staging registers to update telemetry.
+                        var dataPrint = string.Join(" ", GetHex(ret));
+                        Console.WriteLine($"Valid response from: 0x{(a * 0x100 + b):04X} with length: 0x{i:02X}: {dataPrint}");
                     }
-                    Idle(); // Return TX to safe idle state after batch.
-                    Thread.Sleep(100); // Small delay to let BMS process staged reads.
                 }
+            }
+            catch (ThreadInterruptedException)
+            {
+                Console.WriteLine("\nSimulation aborted by user. Exiting gracefully...");
+            }
+            finally
+            {
+                idle();
+            }
+        }
 
-                Reset(); // Perform another reset so subsequent reads start from known state.
-                foreach (var i in ids)
+        public void full_brute(int start = 0, int stop = 0xFFFF, int length = 0xFF)
+        {
+            var addr = 0;
+            try
+            {
+                for (addr = start; addr < stop; addr++)
                 {
-                    if (i < 0 || i >= _dataId.Count)
+                    var msb = (addr >> 8) & 0xFF;
+                    var lsb = addr & 0xFF;
+                    brute(msb, lsb, length, 0x01);
+                    if ((addr % 256) == 0)
                     {
-                        results.Add(null); // Insert null for invalid indices to preserve order.
-                        continue;
+                        Console.WriteLine($"addr = 0x{addr:04X} " + DateTime.Now);
                     }
+                }
+            }
+            catch (ThreadInterruptedException)
+            {
+                Console.WriteLine("\nSimulation aborted by user. Exiting gracefully...");
+                Console.WriteLine($"\nStopped at address: 0x{addr:04X}");
+            }
+            finally
+            {
+                idle();
+            }
+        }
 
-                    var (address, length, dataType, _) = _dataId[i]; // Retrieve metadata (address, length, type).
-                    var addrMsb = (byte)((address >> 8) & 0xFF); // Extract high byte of address.
-                    var addrLsb = (byte)(address & 0xFF); // Extract low byte of address.
+        public byte[] wcmd(byte a, byte b, byte c, int length)
+        {
+            var cmdBuf = new List<byte> { 0x01, 0x05, 0x03, a, b, c };
+            send_command(cmdBuf.ToArray());
+            return read_response(length);
+        }
 
-                    var response = Cmd(addrMsb, addrLsb, (byte)length, (byte)(length + 5)); // Issue command to read register.
-                    if (response.Length >= 4 && response[0] == 0x81) // 0x81 indicates valid response header.
+        public void write_message(string message)
+        {
+            try
+            {
+                if (message.Length > 0x14)
+                {
+                    Console.WriteLine("ERROR: Message too long!");
+                    return;
+                }
+                Console.WriteLine($"Writing \"{message}\" to memory");
+                reset();
+                message = message.PadRight(0x14, '-');
+                for (var i = 0; i < message.Length; i++)
+                {
+                    wcmd(0, (byte)(0x23 + i), (byte)message[i], 2);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"write_message: Failed with error: {e}");
+            }
+        }
+
+        // -------------------------------------
+        // Control-line helpers
+        // -------------------------------------
+        public void idle()
+        {
+            port.BreakState = true;
+            port.DtrEnable = true;
+        }
+
+        public void high()
+        {
+            port.BreakState = false;
+            port.DtrEnable = false;
+        }
+
+        public void high_for(double duration)
+        {
+            high();
+            Thread.Sleep((int)(duration * 1000));
+            idle();
+        }
+
+        // -------------------------------------
+        // Calculations and conversions
+        // -------------------------------------
+        public double calculate_temperature(int adcValue)
+        {
+            var r1 = 10e3;
+            var r2 = 20e3;
+            var t1 = 50;
+            var t2 = 35;
+
+            var adc1 = 0x0180;
+            var adc2 = 0x022E;
+
+            var m = (t2 - t1) / (r2 - r1);
+            var b = t1 - m * r1;
+
+            var resistance = r1 + (adcValue - adc1) * (r2 - r1) / (adc2 - adc1);
+            var temperature = m * resistance + b;
+
+            return Math.Round(temperature, 2);
+        }
+
+        private ulong BigEndianToUInt(byte[] data)
+        {
+            ulong value = 0;
+            foreach (var b in data)
+            {
+                value = (value << 8) + b;
+            }
+            return value;
+        }
+
+        public DateTime bytes2dt(byte[] timeBytes)
+        {
+            var epoch = (long)BigEndianToUInt(timeBytes);
+            var dt = DateTimeOffset.FromUnixTimeSeconds(epoch).UtcDateTime;
+            return dt;
+        }
+
+        // -------------------------------------
+        // Bulk read helpers
+        // -------------------------------------
+        public void read_all()
+        {
+            try
+            {
+                reset();
+                foreach (var entry in data_matrix)
+                {
+                    var response = cmd(entry.Item1, entry.Item2, entry.Item3, entry.Item3 + 5);
+                    if (response.Length >= 4 && response[0] == 0x81)
                     {
-                        var data = response.Skip(3).Take(length).ToArray(); // Skip header/checksum bytes to isolate payload.
-                        results.Add(ParseData(data, dataType)); // Parse to appropriate .NET type (date, int, string).
+                        var data = new byte[entry.Item3];
+                        Array.Copy(response, 3, data, 0, entry.Item3);
+                        var dataPrint = string.Join(" ", GetHex(data));
+                        Console.WriteLine($"Response from: 0x{(entry.Item1 * 0x100 + entry.Item2):04X}: {dataPrint}");
                     }
                     else
                     {
-                        results.Add(null); // Insert null when response not valid/complete.
+                        var dataPrint = string.Join(" ", GetHex(response));
+                        Console.WriteLine($"Invalid response from: 0x{(entry.Item1 * 0x100 + entry.Item2):04X} Response: {dataPrint}");
                     }
                 }
-
-                Idle(); // Return TX to idle after reads.
-                return results; // Deliver parsed list to caller.
+                idle();
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                LogDebug($"ReadId failed: {ex.GetType().Name} - {ex.Message}"); // Trace failure.
-                return null; // Indicate failure to caller.
+                Console.WriteLine($"read_all: Failed with error: {e}");
             }
         }
 
-        /// <summary>
-        /// Saves current TX/RX print flags and sets both to the provided value. Used to temporarily
-        /// silence logging during bulk operations.
-        /// </summary>
-        public void TxRxSaveAndSet(bool value)
+        public object? read_id(IEnumerable<int>? id_array = null, bool force_refresh = true, string output = "label")
         {
-            _savedPrintTx = PrintTx; // Cache current TX flag.
-            _savedPrintRx = PrintRx; // Cache current RX flag.
-            PrintTx = value; // Apply new value.
-            PrintRx = value; // Apply new value.
-        }
-
-        /// <summary>
-        /// Restores TX/RX print flags previously captured by <see cref="TxRxSaveAndSet"/>.
-        /// </summary>
-        public void TxRxRestore()
-        {
-            if (_savedPrintTx.HasValue)
+            if (id_array == null || !id_array.Any())
             {
-                PrintTx = _savedPrintTx.Value; // Restore cached TX flag.
-                _savedPrintTx = null; // Clear cache.
+                id_array = Enumerable.Range(0, data_id.Count);
             }
 
-            if (_savedPrintRx.HasValue)
+            if (!((output == "label") || (output == "raw") || (output == "array") || (output == "form")))
             {
-                PrintRx = _savedPrintRx.Value; // Restore cached RX flag.
-                _savedPrintRx = null; // Clear cache.
-            }
-        }
-
-        /// <summary>
-        /// Parses raw byte data returned from the battery according to the specified type string.
-        /// Converts to ints, dates, ASCII strings, serial numbers, temperatures, or cell voltage lists.
-        /// </summary>
-        private object? ParseData(byte[] data, string dataType)
-        {
-            switch (dataType)
-            {
-                case "uint":
-                    return data.Aggregate(0, (current, b) => (current << 8) + b); // Big-endian integer conversion.
-                case "date":
-                    var seconds = data.Aggregate(0L, (current, b) => (current << 8) + b); // Convert to Unix epoch seconds.
-                    return DateTimeOffset.FromUnixTimeSeconds(seconds).UtcDateTime; // Convert to UTC DateTime for display.
-                case "hhmmss":
-                    var duration = data.Aggregate(0, (current, b) => (current << 8) + b); // Convert to total seconds.
-                    var mmss = TimeSpan.FromSeconds(duration); // Create TimeSpan to format HH:MM:SS.
-                    return $"{(int)mmss.TotalHours}:{mmss.Minutes:00}:{mmss.Seconds:00}"; // Return formatted string.
-                case "ascii":
-                    return Encoding.UTF8.GetString(data); // Interpret payload as UTF-8 text.
-                case "sn":
-                    var btype = (data[0] << 8) + data[1]; // Battery type code from first two bytes.
-                    var serial = (data[2] << 16) + (data[3] << 8) + data[4]; // 24-bit serial value from remaining bytes.
-                    return $"Type: {btype,3}, Serial: {serial}"; // Compose friendly serial string.
-                case "adc_t":
-                    var adcValue = data.Aggregate(0, (current, b) => (current << 8) + b); // Convert ADC reading to integer.
-                    return CalculateTemperature(adcValue); // Convert ADC to approximate temperature.
-                case "dec_t":
-                    return Math.Round(data[0] + data[1] / 256.0, 2); // Temperature stored as integer + fractional part (1/256).
-                case "cell_v":
-                    var cellVoltages = new List<int>(); // Prepare list for each cell voltage.
-                    for (var i = 0; i < data.Length; i += 2)
-                    {
-                        cellVoltages.Add((data[i] << 8) + data[i + 1]); // Convert pair of bytes to mV reading.
-                    }
-                    return cellVoltages; // Return list of cell voltages.
-                default:
-                    return null; // Unknown type; caller will treat as missing.
-            }
-        }
-
-        /// <summary>
-        /// Approximates temperature in Celsius from an ADC value using a linear interpolation between
-        /// two calibration points derived from the original Python script. Shows how to transform
-        /// raw ADC counts into meaningful engineering units.
-        /// </summary>
-        private double CalculateTemperature(int adcValue)
-        {
-            const double r1 = 10e3; // Resistance reference point 1 (ohms).
-            const double r2 = 20e3; // Resistance reference point 2 (ohms).
-            const double t1 = 50; // Temperature corresponding to r1 (degrees Celsius).
-            const double t2 = 35; // Temperature corresponding to r2 (degrees Celsius).
-
-            const double adc1 = 0x0180; // ADC reading at r1.
-            const double adc2 = 0x022E; // ADC reading at r2.
-
-            var m = (t2 - t1) / (r2 - r1); // Calculate slope of temperature vs resistance.
-            var b = t1 - m * r1; // Calculate intercept for linear model.
-
-            var resistance = r1 + (adcValue - adc1) * (r2 - r1) / (adc2 - adc1); // Interpolate resistance from ADC reading.
-            var temperature = m * resistance + b; // Convert resistance to temperature via line equation.
-
-            return Math.Round(temperature, 2); // Round for display friendliness.
-        }
-
-        /// <summary>
-        /// Closes the protocol by driving TX to idle, closing the SerialPort, and disposing managed
-        /// resources. Safe to call multiple times thanks to the _disposed flag.
-        /// </summary>
-        public void Close()
-        {
-            LogDebug("Close invoked. Beginning disposal sequence."); // Trace start.
-            if (_disposed)
-            {
-                LogDebug("Close skipped because object is already disposed."); // Avoid double disposal.
-                return; // No work to do.
+                Console.WriteLine($"Unrecognised 'output' = {output}. Please choose \"label\", \"raw\", or \"array\"");
+                output = "label";
             }
 
-            _disposed = true; // Mark disposed to prevent further I/O calls.
+            var array = new List<object?>();
 
             try
             {
-                Idle(); // Drive TX to safe idle state before closing port to avoid floating line.
+                reset();
+
+                if (force_refresh)
+                {
+                    foreach (var entry in data_matrix)
+                    {
+                        cmd(entry.Item1, entry.Item2, entry.Item3, entry.Item3 + 5);
+                    }
+                    idle();
+                    Thread.Sleep(100);
+                }
+
+                var now = DateTime.Now;
+                var formattedTime = now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                if (output == "label")
+                {
+                    Console.WriteLine(formattedTime);
+                    Console.WriteLine("ID  ADDR   LEN TYPE       LABEL                                   VALUE");
+                }
+                else if (output == "raw")
+                {
+                    Console.WriteLine(formattedTime);
+                }
+                else if (output == "form")
+                {
+                    array.Add(formattedTime);
+                }
+
+                reset();
+                foreach (var i in id_array)
+                {
+                    var entry = data_id[i];
+                    var addr = entry.Item1;
+                    var addr_h = (addr >> 8) & 0xFF;
+                    var addr_l = addr & 0xFF;
+                    var length = entry.Item2;
+                    var data_type = entry.Item3;
+                    var label = entry.Item4;
+
+                    var response = cmd(addr_h, addr_l, length, length + 5);
+                    object? array_value;
+                    object? value;
+
+                    if (response.Length >= 4 && response[0] == 0x81)
+                    {
+                        var data = new byte[length];
+                        Array.Copy(response, 3, data, 0, length);
+                        switch (data_type)
+                        {
+                            case "uint":
+                                array_value = value = BigEndianToUInt(data);
+                                break;
+                            case "date":
+                                var dt = bytes2dt(data);
+                                array_value = dt;
+                                value = dt.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                                break;
+                            case "hhmmss":
+                                var dur = (int)BigEndianToUInt(data);
+                                var mm = dur / 60;
+                                var ss = dur % 60;
+                                var hh = mm / 60;
+                                mm = mm % 60;
+                                array_value = value = $"{hh}:{mm:00}:{ss:00}";
+                                break;
+                            case "ascii":
+                                var str = Encoding.UTF8.GetString(data);
+                                array_value = value = $"\"{str}\"";
+                                break;
+                            case "sn":
+                                var btype = (data[0] << 8) + data[1];
+                                var serial = (data[2] << 16) + (data[3] << 8) + data[4];
+                                if (output == "label" || output == "array")
+                                {
+                                    array_value = value = $"Type: {btype:3d}, Serial: {serial:d}";
+                                }
+                                else
+                                {
+                                    value = $"{btype}\n{serial}";
+                                    array_value = value;
+                                }
+                                break;
+                            case "adc_t":
+                                var adcTemp = calculate_temperature((data[0] << 8) + data[1]);
+                                array_value = value = adcTemp;
+                                break;
+                            case "dec_t":
+                                var temp = data[0] + data[1] / 256.0;
+                                array_value = value = temp.ToString("0.00", CultureInfo.InvariantCulture);
+                                break;
+                            case "cell_v":
+                                var cv = new List<int>();
+                                for (var idx = 0; idx < 10; idx += 2)
+                                {
+                                    cv.Add((data[idx] << 8) + data[idx + 1]);
+                                }
+                                array_value = cv;
+                                if (output == "label")
+                                {
+                                    value = $"1: {cv[0]:4d}, 2: {cv[1]:4d}, 3: {cv[2]:4d}, 4: {cv[3]:4d}, 5: {cv[4]:4d}";
+                                }
+                                else
+                                {
+                                    value = $"{cv[0]:4d}\n{cv[1]:4d}\n{cv[2]:4d}\n{cv[3]:4d}\n{cv[4]:4d}";
+                                }
+                                break;
+                            default:
+                                array_value = null;
+                                value = null;
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        array_value = null;
+                        value = "------";
+                    }
+
+                    if (output == "label")
+                    {
+                        Console.WriteLine($"{i:3d} 0x{addr:04X} {length:2d} {data_type,6}   {label,-39} {value}");
+                    }
+                    else if (output == "raw")
+                    {
+                        Console.WriteLine(value);
+                    }
+                    else if (output == "array")
+                    {
+                        array.Add(new List<object?> { i, array_value });
+                    }
+                    else if (output == "form")
+                    {
+                        array.Add(value);
+                    }
+                }
+
+                if ((output == "array" || output == "form") && array.Count > 0)
+                {
+                    return array;
+                }
+
+                idle();
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                LogDebug($"Error setting idle during close: {ex.GetType().Name} - {ex.Message}"); // Log but continue cleanup.
+                Console.WriteLine($"read_id: Failed with error: {e}");
             }
+
+            return null;
+        }
+
+        public void read_all_spreadsheet()
+        {
+            try
+            {
+                reset();
+                foreach (var entry in data_matrix)
+                {
+                    cmd(entry.Item1, entry.Item2, entry.Item3, entry.Item3 + 5);
+                }
+                idle();
+                Thread.Sleep(500);
+
+                reset();
+                var now = DateTime.Now;
+                var formattedTime = now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                Console.WriteLine(formattedTime);
+
+                foreach (var entry in data_matrix)
+                {
+                    var response = cmd(entry.Item1, entry.Item2, entry.Item3, entry.Item3 + 5);
+                    if (response.Length >= 4 && response[0] == 0x81)
+                    {
+                        var data = new byte[entry.Item3];
+                        Array.Copy(response, 3, data, 0, entry.Item3);
+                        Console.WriteLine($"0x{(entry.Item1 * 0x100 + entry.Item2):04X}");
+                        if (data.Length == 0)
+                        {
+                            Console.WriteLine("EMPTY");
+                        }
+                        else
+                        {
+                            var dataPrint = string.Join("\n", data);
+                            Console.WriteLine(dataPrint);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"0x{(entry.Item1 * 0x100 + entry.Item2):04X}");
+                        var dataPrint = string.Join(" ", GetHex(response));
+                        Console.WriteLine($"INV: {dataPrint}");
+                        for (var i = 1; i < entry.Item3; i++)
+                        {
+                            Console.WriteLine("blank");
+                        }
+                    }
+                }
+
+                idle();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"read_all_spreadsheet: Failed with error: {e}");
+            }
+        }
+
+        public void health(bool force_refresh = true)
+        {
+            var reg_list = new List<int>
+            {
+                4,
+                28,
+                25,
+                26,
+                12,
+                13,
+                18,
+                29,
+                39,
+                40,
+                41,
+                42,
+                43,
+                33, 32, 31,
+                35,
+                36,
+                38
+            };
+            reg_list.AddRange(Enumerable.Range(44, 20));
+            reg_list.AddRange(new List<int> { 8, 2 });
+
+            txrx_save_and_set(true);
 
             try
             {
-                _port.Close(); // Close COM port handle.
+                Console.WriteLine("Reading battery. This will take 5-10sec\n");
+                var array = read_id(reg_list, force_refresh, "array") as List<object?>;
+                if (array == null)
+                {
+                    txrx_restore();
+                    return;
+                }
+
+                var sn = array[40] as List<object?>;
+                var snValue = sn?[1]?.ToString() ?? string.Empty;
+                var numbers = Regex.Matches(snValue, @"\d+\.?\d*");
+                var bat_type = numbers.Count > 0 ? numbers[0].Value : "";
+                var e_serial = numbers.Count > 1 ? numbers[1].Value : "";
+                var bat_lookup = new Dictionary<string, (double, string)>
+                {
+                    { "36", (1.5, "1.5Ah CP (5s1p 18650)") },
+                    { "37", (2, "2Ah CP (5s1p 18650)") },
+                    { "38", (3, "3Ah XC (5s2p 18650)") },
+                    { "39", (4, "4Ah XC (5s2p 18650)") },
+                    { "40", (5, "5Ah XC (5s2p 18650) (<= Dec 2018)") },
+                    { "165", (5, "5Ah XC (5s2p 18650) (Aug 2019 - Jun 2021)") },
+                    { "306", (5, "5Ah XC (5s2p 18650) (Feb 2021 - Jul 2023)") },
+                    { "424", (5, "5Ah XC (5s2p 18650) (>= Sep 2023)") },
+                    { "46", (6, "6Ah XC (5s2p 18650)") },
+                    { "47", (9, "9Ah HD (5s3p 18650)") },
+                    { "104", (3, "3Ah HO (5s1p 21700)") },
+                    { "150", (6, "5.5Ah HO (5s2p 21700) (EU only)") },
+                    { "106", (6, "6Ah HO (5s2p 21700)") },
+                    { "107", (8, "8Ah HO (5s2p 21700)") },
+                    { "108", (12, "12Ah HO (5s3p 21700)") },
+                    { "383", (8, "8Ah Forge (5s2p 21700 tabless)") },
+                    { "384", (12, "12Ah Forge (5s3p 21700 tabless)") }
+                };
+                var bat_text = bat_lookup.ContainsKey(bat_type) ? bat_lookup[bat_type] : (0, "Unknown");
+                Console.WriteLine($"Type: {bat_type} [{bat_text.Item2}]");
+                Console.WriteLine($"E-serial: {e_serial} (does NOT match case serial)");
+
+                var bat_now = (array[39] as List<object?>)?[1] as DateTime? ?? DateTime.Now;
+
+                Console.WriteLine("Manufacture date: " + ((array[0] as List<object?>)?[1] as DateTime?)?.ToString("yyyy-MM-dd"));
+                Console.WriteLine("Days since 1st charge: " + ((array[1] as List<object?>)?[1] ?? ""));
+                Console.WriteLine("Days since last tool use: " + (bat_now - (((array[2] as List<object?>)?[1] as DateTime?) ?? bat_now)).Days);
+                Console.WriteLine("Days since last charge: " + (bat_now - (((array[3] as List<object?>)?[1] as DateTime?) ?? bat_now)).Days);
+
+                var cvList = (array[4] as List<object?>)?[1] as List<int> ?? new List<int>();
+                Console.WriteLine($"Pack voltage: {cvList.Sum() / 1000.0}");
+                Console.WriteLine("Cell Voltages (mV): " + string.Join(", ", cvList));
+                Console.WriteLine($"Cell Imbalance (mV): {(cvList.Count > 0 ? cvList.Max() - cvList.Min() : 0)}");
+                if ((array[5] as List<object?>)?[1] != null)
+                {
+                    Console.WriteLine($"Temperature (deg C): {(array[5] as List<object?>)?[1]}");
+                }
+                if ((array[6] as List<object?>)?[1] != null)
+                {
+                    Console.WriteLine($"Temperature (deg C): {(array[6] as List<object?>)?[1]}");
+                }
+
+                Console.WriteLine("\nCHARGING STATS:");
+                Console.WriteLine($"Charge count [Redlink, dumb, (total)]: {(array[13] as List<object?>)?[1]}, {(array[14] as List<object?>)?[1]}, ({(array[15] as List<object?>)?[1]})");
+                Console.WriteLine($"Total charge time: {(array[16] as List<object?>)?[1]}");
+                Console.WriteLine($"Time idling on charger: {(array[17] as List<object?>)?[1]}");
+                Console.WriteLine($"Low-voltage charges (any cell <2.5V): {(array[18] as List<object?>)?[1]}");
+
+                Console.WriteLine("\nTOOL USE STATS:");
+                var totalDischarge = Convert.ToDouble((array[7] as List<object?>)?[1] ?? 0);
+                Console.WriteLine("Total discharge (Ah): " + (totalDischarge / 3600).ToString("0.00", CultureInfo.InvariantCulture));
+                string total_discharge_cycles;
+                if (bat_text.Item1 != 0)
+                {
+                    total_discharge_cycles = (totalDischarge / 3600 / bat_text.Item1).ToString("0.00", CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    total_discharge_cycles = "Unknown battery type, unable to calculate";
+                }
+                Console.WriteLine($"Total discharge cycles: {total_discharge_cycles}");
+                Console.WriteLine($"Times discharged to empty: {(array[8] as List<object?>)?[1]}");
+                Console.WriteLine($"Times overheated: {(array[9] as List<object?>)?[1]}");
+                Console.WriteLine($"Overcurrent events: {(array[10] as List<object?>)?[1]}");
+                Console.WriteLine($"Low-voltage events: {(array[11] as List<object?>)?[1]}");
+                Console.WriteLine($"Low-voltage bounce/stutter: {(array[12] as List<object?>)?[1]}");
+
+                var tool_time = 0;
+                for (var i = 19; i < 39; i++)
+                {
+                    tool_time += Convert.ToInt32((array[i] as List<object?>)?[1] ?? 0);
+                }
+
+                Console.WriteLine($"Total time on tool (>10A): {TimeSpan.FromSeconds(tool_time)}");
+
+                var j = 0;
+                for (var idx = 19; idx < 38; idx++)
+                {
+                    j = idx;
+                    var amp_range = $"{(idx - 18) * 10}-{(idx - 17) * 10}A";
+                    var label = $"Time @ {amp_range,>8}:";
+                    var t = Convert.ToInt32((array[idx] as List<object?>)?[1] ?? 0);
+                    var hhmmss = TimeSpan.FromSeconds(t);
+                    var pct = tool_time != 0 ? Math.Round((t / (double)tool_time) * 100) : 0;
+                    var bar = new string('X', (int)Math.Round(pct));
+                    Console.WriteLine($"{label} {hhmmss} {pct:00}% {bar}");
+                }
+                j += 1;
+                var lastAmp = "> 200A";
+                var lastLabel = $"Time @ {lastAmp,>8}:";
+                var lastT = Convert.ToInt32((array[j] as List<object?>)?[1] ?? 0);
+                var lastHhmmss = TimeSpan.FromSeconds(lastT);
+                var lastPct = tool_time != 0 ? Math.Round((lastT / (double)tool_time) * 100) : 0;
+                var lastBar = new string('X', (int)Math.Round(lastPct));
+                Console.WriteLine($"{lastLabel} {lastHhmmss} {lastPct:00}% {lastBar}");
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                LogDebug($"Error while closing serial port: {ex.GetType().Name} - {ex.Message}"); // Log any issues closing port.
+                Console.WriteLine($"health: Failed with error: {e}");
+                Console.WriteLine("Check battery is connected and you have correct serial port");
             }
-            finally
+
+            txrx_restore();
+        }
+
+        // -------------------------------------
+        // Form submission (synchronous to match Python flow)
+        // -------------------------------------
+        public void submit_form()
+        {
+            var formUrl = "https://docs.google.com/forms/d/e/1FAIpQLScvTbSDYBzSQ8S4XoF-rfgwNj97C-Pn4Px3GIixJxf0C1YJJA/formResponse";
+            Console.WriteLine("Getting data from battery...");
+            var output = read_id(output: "form") as List<object?>;
+
+            if (output == null)
             {
-                _port.Dispose(); // Release unmanaged resources held by SerialPort.
-                LogDebug("Serial port disposed."); // Confirm disposal.
+                Console.WriteLine("submit_form: No output returned, aborting");
+            }
+            var s_output = output != null ? string.Join("\n", output) : string.Empty;
+
+            Console.WriteLine("Please provide this information. All the values can be found on the label under the battery.");
+            Console.Write("Enter One-Key ID (example: H18FDCAD): ");
+            var one_key_id = Console.ReadLine() ?? string.Empty;
+            Console.Write("Enter Date (example: 190316): ");
+            var date = Console.ReadLine() ?? string.Empty;
+            Console.Write("Enter Serial number (example: 0807426): ");
+            var serial_number = Console.ReadLine() ?? string.Empty;
+            Console.Write("Enter Sticker (example: 4932 4512 45): ");
+            var sticker = Console.ReadLine() ?? string.Empty;
+            Console.Write("Enter Type (example: M18B9): ");
+            var model_type = Console.ReadLine() ?? string.Empty;
+            Console.Write("Enter Capacity (example: 9.0Ah): ");
+            var capacity = Console.ReadLine() ?? string.Empty;
+
+            var formData = new Dictionary<string, string>
+            {
+                { "entry.905246449", one_key_id },
+                { "entry.453401884", date },
+                { "entry.2131879277", serial_number },
+                { "entry.337435885", sticker },
+                { "entry.1496274605", model_type },
+                { "entry.324224550", capacity },
+                { "entry.716337020", s_output }
+            };
+
+            using var client = new HttpClient();
+            var response = client.PostAsync(formUrl, new FormUrlEncodedContent(formData)).Result;
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Form submitted successfully!");
+            }
+            else
+            {
+                Console.WriteLine($"submit_form: Failed to submit form. Status code: {(int)response.StatusCode}");
             }
         }
 
-        /// <summary>
-        /// Constructs and sends a register read command, then reads the expected number of bytes
-        /// back. The command byte defaults to 0x01 but can be overridden for other operations.
-        /// </summary>
-        public byte[] Cmd(byte addrMsb, byte addrLsb, byte length, byte command = 0x01)
+        // -------------------------------------
+        // Help text (unchanged)
+        // -------------------------------------
+        public void help()
         {
-            LogDebug($"Cmd invoked with addrMsb=0x{addrMsb:X2}, addrLsb=0x{addrLsb:X2}, length={length}, command=0x{command:X2}."); // Trace command parameters.
-            SendCommand(new[]
-            {
-                command, // Command type (0x01 for read).
-                (byte)0x04, // Unknown protocol constant from Python implementation (likely addressing mode).
-                (byte)0x03, // Unknown protocol constant; part of command header.
-                addrMsb, // High byte of register address.
-                addrLsb, // Low byte of register address.
-                length // Number of bytes to read.
-            });
-
-            return ReadResponse(length); // Read payload bytes; header/checksum processed in ReadResponse.
+            Console.WriteLine("Functions: \n \
+            DIAGNOSTICS: \n \
+            m.health() - print simple health report on battery \n \
+            m.read_id() - print labelled and formatted diagnostics \n \
+            m.read_id(output=\"raw\") - print in spreadsheet format \n \
+            m.submit_form() - prompts for manual inputs and submits battery diagnostics data \n \
+            \n \
+            m.help() - this message\n \
+            m.adv_help() - advanced help\n \
+            \n \
+            exit() - end program\n");
         }
 
-        /// <summary>
-        /// Reads the specified number of bytes from the SerialPort, aggregating partial reads until
-        /// the requested count is met or a timeout/port error occurs.
-        /// </summary>
-        private IEnumerable<byte> ReadAvailable(int count)
+        public void adv_help()
         {
-            LogDebug($"ReadAvailable attempting to read {count} byte(s)."); // Trace request.
-            var buffer = new byte[count]; // Temporary buffer for incoming bytes.
-            int totalRead = 0; // Track how many bytes we have read so far.
-
-            while (totalRead < count)
-            {
-                try
-                {
-                    int read = _port.Read(buffer, totalRead, count - totalRead); // Attempt to fill remaining bytes.
-                    if (read > 0)
-                    {
-                        totalRead += read; // Increment total with bytes read this iteration.
-                        LogDebug($"Read {read} byte(s); total read so far: {totalRead}."); // Trace progress.
-                      }
-                }
-                catch (InvalidOperationException ex)
-                {
-                    LogDebug($"ReadAvailable stopped because port is unavailable: {ex.GetType().Name} - {ex.Message}"); // Port closed/disposed; break loop.
-                    break;
-                }
-                catch (TimeoutException)
-                {
-                    LogDebug("Timeout encountered while reading available bytes."); // Stop reading on timeout to avoid blocking forever.
-                    break;
-                }
-            }
-
-            var result = buffer.Take(totalRead).ToArray(); // Slice buffer down to bytes actually read.
-            LogDebug($"ReadAvailable returning {result.Length} byte(s): {FormatBytes(result)}."); // Trace final chunk.
-            return buffer.Take(totalRead).ToArray(); // Return trimmed array to caller.
-        }
-
-        /// <summary>
-        /// Sends debug messages to whichever logger the UI attached. Keeps protocol agnostic of UI
-        /// output mechanism.
-        /// </summary>
-        private void LogDebug(string message)
-        {
-            DebugLogger?.Invoke(message); // Only log when delegate supplied.
-        }
-
-        /// <summary>
-        /// Formats a sequence of bytes as a space-delimited hex string (e.g., "AA 55 10").
-        /// </summary>
-        private static string FormatBytes(IEnumerable<byte> bytes)
-        {
-            if (bytes == null)
-            {
-                return string.Empty; // Gracefully handle null sequences.
-            }
-
-            var builder = new StringBuilder(); // Efficient string concatenation.
-            var array = bytes.ToArray(); // Materialize enumerable to avoid multiple enumerations.
-
-            for (int i = 0; i < array.Length; i++)
-            {
-                builder.Append(array[i].ToString("X2")); // Append byte as two-digit hex.
-                if (i < array.Length - 1)
-                {
-                    builder.Append(' '); // Add space separator except after last byte.
-                }
-            }
-
-            return builder.ToString(); // Return formatted string for logs.
+            Console.WriteLine("Advanced functions: \n \
+            m.read_all() - print all known bytes in 0x01 command \n \
+            m.read_all_spreadsheet() - print bytes in spreadsheet format \n \
+            \n \
+            CHARGING SIMULATION: \n \
+            m.simulate() - simulate charging comms \n \
+            m.simulate_for(t) - simulate for t seconds \n \
+            m.high_for(t) - bring J2 high for t sec, then idle \n \
+            \n \
+            m.write_message(message) - write ascii string to 0x0023 register (20 chars)\n \
+            \n \
+            Debug: \n \
+            m.PRINT_TX = True - boolean to enable TX messages \n \
+            m.PRINT_RX = True - boolean to enable RX messages \n \
+            m.txrx_print(bool) - set PRINT_TX & RX to bool \n \
+            m.txrx_save_and_set(bool) - save PRINT_TX & RX state, then set both to bool \n \
+            m.txrx_restore() - restore PRINT_TX & RX to saved values \n \
+            m.brute(addr_msb, addr_lsb) \n \
+            m.full_brute(start, stop, len) - check registers from 'start' to 'stop'. look for 'len' bytes \n \
+            m.debug(addr_msb, addr_lsb, len, rsp_len) - send reset() then cmd() to battery \n \
+            m.try_cmd(cmd, addr_h, addr_l, len) - try 'cmd' at [addr_h addr_l] with 'len' bytes \n \
+            \n \
+            Internal:\n \
+            m.high() - bring J2 pin high (20V)\n \
+            m.idle() - pull J2 pin low (0V) \n \
+            m.reset() - send 0xAA to battery. Return true if battery replies wih 0xAA \n \
+            m.get_snapchat() - request 'snapchat' from battery (0x61)\n \
+            m.configure() - send 'configure' message (0x60, charger parameters)\n \
+            m.calibrate() - calibration/interrupt command (0x55) \n \
+            m.keepalive() - send charge current request (0x62) \n");
         }
     }
 }

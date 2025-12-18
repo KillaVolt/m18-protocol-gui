@@ -4,7 +4,9 @@
 // Literal, instruction-for-instruction port of m18.py. Every sleep, buffer reset, control-line
 // toggle, byte ordering rule, and logging string mirrors the Python implementation. The structure
 // intentionally ignores .NET conventions so the execution order, timing, and side effects remain
-// identical to the Python reference, including redundant operations and blocking behaviour.
+// identical to the Python reference, including redundant operations and blocking behaviour. Serial
+// I/O now routes through RJCP.IO.Ports.SerialPortStream (via SerialPortConnection) to guarantee
+// .NET 10 compatibility and access to manual BREAK/DTR toggles plus buffer flushes.
 // *************************************************************************************************
 
 using System;

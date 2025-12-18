@@ -35,7 +35,8 @@ internal static class FtdiDeviceUtil
         var ftdi = new FTDI(); // FTDI object used solely for discovery; not kept open.
 
         // D2XX: query the number of attached FTDI devices. Mirrors pyserial's initial port scan.
-        var status = ftdi.GetNumberOfDevices(ref var count);
+        uint count = 0;
+        var status = ftdi.GetNumberOfDevices(ref count);
         debugLogger?.Invoke($"FT_GetNumberOfDevices -> {status} (count={count})");
         if (status != FTDI.FT_STATUS.FT_OK || count == 0)
         {
@@ -88,49 +89,4 @@ internal static class FtdiDeviceUtil
             .OrderBy(device => device.SerialNumber, StringComparer.OrdinalIgnoreCase) // Stable ordering for UI.
             .ToList();
     }
-}
-
-/// <summary>
-/// Immutable record describing a single FTDI device, combining D2XX and SetupAPI data so the UI can
-/// display a helpful label while the protocol layer opens the device by serial number/index.
-/// </summary>
-internal sealed record FtdiDeviceDisplay(
-    uint Index,
-    string SerialNumber,
-    string Description,
-    uint DeviceId,
-    uint LocationId,
-    FTDI.FT_DEVICE DeviceType,
-    string? ComPort,
-    string? Manufacturer,
-    string? FriendlyName,
-    string? Source)
-{
-    public string DisplayName
-    {
-        get
-        {
-            // Example: "SN:FT123ABC - FT232R USB UART - COM3 - FTDI"
-            var parts = new List<string> { $"SN:{SerialNumber}" };
-
-            if (!string.IsNullOrWhiteSpace(Description))
-            {
-                parts.Add(Description);
-            }
-
-            if (!string.IsNullOrWhiteSpace(ComPort))
-            {
-                parts.Add(ComPort!);
-            }
-
-            if (!string.IsNullOrWhiteSpace(Manufacturer))
-            {
-                parts.Add(Manufacturer!);
-            }
-
-            return string.Join(" - ", parts);
-        }
-    }
-
-    public override string ToString() => DisplayName; // ComboBox uses this for display text.
 }

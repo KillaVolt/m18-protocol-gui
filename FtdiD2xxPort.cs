@@ -203,3 +203,26 @@ internal sealed class FtdiD2xxPort : IDisposable
         return string.Join(" ", data.Select(b => $"0x{b:X2}")); // Formats byte arrays similar to m18.py debug.
     }
 }
+
+/// <summary>
+/// Contains information about an FTDI device. The properties mirror the relevant fields from the
+/// D2XX API and provide additional metadata for logging and debugging purposes.
+/// </summary>
+public sealed record FtdiDeviceDisplay : IEquatable<FtdiDeviceDisplay>
+{
+    public uint Index { get; init; }
+    public string SerialNumber { get; init; }
+    public string Description { get; init; }
+    public uint DeviceId { get; init; }
+    public uint LocationId { get; init; }
+    public FTDI.FT_DEVICE DeviceType { get; init; }
+    public string? ComPort { get; init; }
+    public string? Manufacturer { get; init; }
+    public string? FriendlyName { get; init; }
+    public string? Source { get; init; }
+    public string DisplayName { get; }
+    public override string ToString()
+    {
+        return DisplayName;
+    }
+}

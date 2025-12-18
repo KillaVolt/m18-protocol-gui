@@ -11,7 +11,6 @@
 
 using System; // Core types like IntPtr and StringComparer.
 using System.Collections.Generic; // Collections used to gather port metadata.
-using System.IO.Ports; // SerialPort.GetPortNames() used as a fallback enumeration method.
 using System.Linq; // LINQ helpers for ordering and filtering port lists.
 using System.Runtime.InteropServices; // P/Invoke attributes to call SetupAPI functions.
 using System.Text; // StringBuilder for marshaling strings from unmanaged memory.
@@ -52,8 +51,9 @@ internal static class SerialPortUtil
     };
 
     /// <summary>
-    /// Enumerates serial ports using SetupAPI and falls back to SerialPort.GetPortNames() when
-    /// additional details cannot be retrieved. Combines results into a sorted list ready for UI display.
+    /// Enumerates serial ports using SetupAPI and returns metadata suitable for UI display. This helper
+    /// remains to correlate FTDI serial numbers with COM port assignments for reference only; all I/O
+    /// flows through the D2XX driver.
     /// </summary>
     /// <param name="debugLogger">Optional logger for verbose debug output.</param>
     /// <returns>Ordered list of serial port metadata.</returns>
@@ -62,7 +62,6 @@ internal static class SerialPortUtil
         var ports = new Dictionary<string, SerialPortDisplay>(StringComparer.OrdinalIgnoreCase); // Use dictionary to merge data from multiple sources case-insensitively.
 
         EnumerateViaSetupApi(ports, debugLogger); // Primary enumeration using SetupAPI P/Invoke for rich data.
-        AppendSerialPortFallbacks(ports, debugLogger); // Add/merge entries using SerialPort.GetPortNames() as safety net.
 
         return ports.Values
             .OrderBy(port => port.PortName, StringComparer.OrdinalIgnoreCase) // Sort alphabetically for predictable UI ordering.
@@ -77,8 +76,8 @@ internal static class SerialPortUtil
         var deviceInfoSet = SetupDiGetClassDevs(ref portsClassGuid, null, IntPtr.Zero, DIGCF_PRESENT); // Calls into setupapi.dll.
         if (deviceInfoSet == IntPtr.Zero || deviceInfoSet == new IntPtr(-1))
         {
-            log?.Invoke("SetupAPI enumeration failed to acquire device info set; continuing with fallbacks only."); // Warn UI that we are falling back.
-            return; // Without a valid handle we cannot enumerate; rely on SerialPort.GetPortNames later.
+            log?.Invoke("SetupAPI enumeration failed to acquire device info set; no COM metadata available."); // Warn UI that we cannot fetch metadata.
+            return; // Without a valid handle we cannot enumerate.
         }
 
         try
@@ -154,36 +153,6 @@ internal static class SerialPortUtil
         finally
         {
             SetupDiDestroyDeviceInfoList(deviceInfoSet); // Always release the device info set handle to avoid leaks.
-        }
-    }
-
-    private static void AppendSerialPortFallbacks(IDictionary<string, SerialPortDisplay> ports, Action<string>? log)
-    {
-        try
-        {
-            foreach (var portName in SerialPort.GetPortNames()) // .NET API that queries OS for COM port names only.
-            {
-                if (ports.TryGetValue(portName, out var existing))
-                {
-                    ports[portName] = existing with
-                    {
-                        Source = CombineSources(existing.Source, "SerialPort.GetPortNames()") // Add fallback source info if already present.
-                    };
-                }
-                else
-                {
-                    ports[portName] = SerialPortDisplay.Create(portName) with
-                    {
-                        Source = "SerialPort.GetPortNames() fallback" // Mark as fallback-only entry.
-                    };
-                }
-
-                log?.Invoke($"SerialPort.GetPortNames detected {portName}."); // Debug log for each port found.
-            }
-        }
-        catch (Exception ex)
-        {
-            log?.Invoke($"SerialPort.GetPortNames() failed: {ex.Message}"); // Report exceptions (rare but possible on restricted environments).
         }
     }
 

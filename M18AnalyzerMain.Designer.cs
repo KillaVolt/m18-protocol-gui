@@ -87,6 +87,8 @@ namespace M18BatteryInfo
             btnReadAllSpreadsheet = new Button();
             btnReadAllRegisters = new Button();
             rtbAdvOutput = new RichTextBox();
+            tabD2xx = new TabPage();
+            rtbD2xxLog = new RichTextBox();
             tabSimulation = new TabPage();
             grpBxSimCustomProfile = new GroupBox();
             lblCutoffRaw = new Label();
@@ -145,6 +147,7 @@ namespace M18BatteryInfo
             // 
             tabControlM18Main.Controls.Add(tabSimple);
             tabControlM18Main.Controls.Add(tabAdvanced);
+            tabControlM18Main.Controls.Add(tabD2xx);
             tabControlM18Main.Controls.Add(tabSimulation);
             tabControlM18Main.Controls.Add(tabDiagnostics);
             tabControlM18Main.Controls.Add(tabAbout);
@@ -307,7 +310,7 @@ namespace M18BatteryInfo
             lblSerialPort.Name = "lblSerialPort";
             lblSerialPort.Size = new Size(79, 20);
             lblSerialPort.TabIndex = 2;
-            lblSerialPort.Text = "Serial Port:";
+            lblSerialPort.Text = "FTDI Device:";
             // 
             // cmbBxSerialPort
             // 
@@ -344,6 +347,19 @@ namespace M18BatteryInfo
             tabAdvanced.TabIndex = 1;
             tabAdvanced.Text = "Advanced";
             tabAdvanced.UseVisualStyleBackColor = true;
+
+            // 
+            // tabD2xx
+            // 
+            tabD2xx.Controls.Add(rtbD2xxLog);
+            tabD2xx.Location = new Point(4, 29);
+            tabD2xx.Margin = new Padding(2);
+            tabD2xx.Name = "tabD2xx";
+            tabD2xx.Padding = new Padding(2);
+            tabD2xx.Size = new Size(1090, 361);
+            tabD2xx.TabIndex = 2;
+            tabD2xx.Text = "Raw D2XX Log";
+            tabD2xx.UseVisualStyleBackColor = true;
             // 
             // btnRestoreTxRxState
             // 
@@ -661,6 +677,17 @@ namespace M18BatteryInfo
             rtbAdvOutput.Size = new Size(532, 142);
             rtbAdvOutput.TabIndex = 0;
             rtbAdvOutput.Text = "";
+
+            // 
+            // rtbD2xxLog
+            // 
+            rtbD2xxLog.Dock = DockStyle.Fill;
+            rtbD2xxLog.Location = new Point(2, 2);
+            rtbD2xxLog.Margin = new Padding(2);
+            rtbD2xxLog.Name = "rtbD2xxLog";
+            rtbD2xxLog.Size = new Size(1086, 357);
+            rtbD2xxLog.TabIndex = 0;
+            rtbD2xxLog.Text = "";
             // 
             // tabSimulation
             // 
@@ -678,7 +705,7 @@ namespace M18BatteryInfo
             tabSimulation.Name = "tabSimulation";
             tabSimulation.Padding = new Padding(2);
             tabSimulation.Size = new Size(1090, 361);
-            tabSimulation.TabIndex = 2;
+            tabSimulation.TabIndex = 3;
             tabSimulation.Text = "Simulation";
             tabSimulation.UseVisualStyleBackColor = true;
             // 
@@ -870,7 +897,7 @@ namespace M18BatteryInfo
             tabDiagnostics.Name = "tabDiagnostics";
             tabDiagnostics.Padding = new Padding(2);
             tabDiagnostics.Size = new Size(1090, 361);
-            tabDiagnostics.TabIndex = 3;
+            tabDiagnostics.TabIndex = 4;
             tabDiagnostics.Text = "Submit Diagnostics";
             tabDiagnostics.UseVisualStyleBackColor = true;
             // 
@@ -1017,7 +1044,7 @@ namespace M18BatteryInfo
             tabAbout.Name = "tabAbout";
             tabAbout.Padding = new Padding(2);
             tabAbout.Size = new Size(1090, 361);
-            tabAbout.TabIndex = 4;
+            tabAbout.TabIndex = 5;
             tabAbout.Text = "About";
             tabAbout.UseVisualStyleBackColor = true;
             // 
@@ -1115,6 +1142,7 @@ namespace M18BatteryInfo
             grpTryCmd.PerformLayout();
             grpbxDebugCmd.ResumeLayout(false);
             grpbxDebugCmd.PerformLayout();
+            tabD2xx.ResumeLayout(false);
             tabSimulation.ResumeLayout(false);
             tabSimulation.PerformLayout();
             grpBxSimCustomProfile.ResumeLayout(false);
@@ -1132,6 +1160,7 @@ namespace M18BatteryInfo
         private TabControl tabControlM18Main;
         private TabPage tabSimple;
         private TabPage tabAdvanced;
+        private TabPage tabD2xx;
         private ComboBox cmbBxSerialPort;
         private RichTextBox rtbOutput;
         private TabPage tabSimulation;
@@ -1150,6 +1179,7 @@ namespace M18BatteryInfo
         private Button btnReadAllSpreadsheet;
         private Button btnReadAllRegisters;
         private RichTextBox rtbAdvOutput;
+        private RichTextBox rtbD2xxLog;
         private TextBox txtWriteMessage;
         private Button btnWriteMessage;
         private Button btnReadIDLabelled;

@@ -10,7 +10,6 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO.Ports;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -43,8 +42,18 @@ namespace M18BatteryInfo
         public bool PRINT_RX_SAVE = false;
         public Action<string>? TxLogger { get; set; }
         public Action<string>? RxLogger { get; set; }
+        private Action<string>? rawLogger;
+        public Action<string>? RawLogger
+        {
+            get => rawLogger;
+            set
+            {
+                rawLogger = value;
+                port?.UpdateLogger(value);
+            }
+        }
 
-        public SerialPort port;
+        public FtdiD2xxPort port;
 
         // ---------------------------
         // Data tables copied verbatim from m18.py
@@ -256,37 +265,10 @@ namespace M18BatteryInfo
         // -------------------------------------
         // Constructor mirroring __init__ in m18.py
         // -------------------------------------
-        public M18Protocol(string? portName)
+        public M18Protocol(FtdiDeviceDisplay device, Action<string>? rawLogger = null)
         {
-            if (portName == null)
-            {
-                Console.WriteLine("*** NO PORT SPECIFIED ***");
-                Console.WriteLine("Available serial ports (choose one that says USB somewhere):");
-
-                var ports = SerialPortUtil.EnumerateDetailedPorts();
-                var i = 1;
-                var portId = 0;
-                foreach (var portEntry in ports)
-                {
-                    Console.WriteLine($"  {i}: {portEntry.PortName} - {portEntry.Manufacturer} - {portEntry.FriendlyName ?? portEntry.Description}");
-                    i = i + 1;
-                }
-
-                var selectedPort = ports[portId - 1];
-                Console.WriteLine($"You selected \"{selectedPort.PortName} - {selectedPort.Manufacturer} - {selectedPort.FriendlyName ?? selectedPort.Description}\"");
-                Console.WriteLine($"In future, use \"m18.py --port {selectedPort.PortName}\" to avoid this menu");
-                Console.Write("Press Enter to continue");
-                Console.ReadLine();
-
-                portName = selectedPort.PortName;
-            }
-
-            port = new SerialPort(portName, 4800, Parity.None, 8, StopBits.Two)
-            {
-                ReadTimeout = 800,
-                WriteTimeout = 800
-            };
-            port.Open();
+            RawLogger = rawLogger;
+            port = new FtdiD2xxPort(device, RawLogger);
             idle();
         }
 
@@ -318,11 +300,11 @@ namespace M18BatteryInfo
         public bool reset()
         {
             ACC = 4;
-            port.BreakState = true;
-            port.DtrEnable = true;
+            port.SetBreak(true);
+            port.SetDtr(true);
             Thread.Sleep(300);
-            port.BreakState = false;
-            port.DtrEnable = false;
+            port.SetBreak(false);
+            port.SetDtr(false);
             Thread.Sleep(300);
             send(new[] { SYNC_BYTE });
             try
@@ -392,7 +374,7 @@ namespace M18BatteryInfo
         // -------------------------------------
         public void send(byte[] command)
         {
-            port.DiscardInBuffer();
+            port.PurgeRx();
             var debugPrint = string.Join(" ", GetHex(command));
             var msb = new List<byte>();
             foreach (var b in command)
@@ -405,7 +387,7 @@ namespace M18BatteryInfo
                 LogTx($"Sending:  {debugPrint}");
             }
 
-            port.Write(msb.ToArray(), 0, msb.Count);
+            port.WriteBytes(msb.ToArray());
         }
 
         public void send_command(byte[] command)
@@ -472,13 +454,20 @@ namespace M18BatteryInfo
 
         private byte ReadOneByte()
         {
-            var buffer = new byte[1];
-            var read = port.Read(buffer, 0, 1);
-            if (read < 1)
+            try
             {
-                throw new ValueError("Empty response");
+                var buffer = port.ReadBytes(1);
+                if (buffer.Length < 1)
+                {
+                    throw new ValueError("Empty response");
+                }
+
+                return buffer[0];
             }
-            return buffer[0];
+            catch (Exception ex) when (ex is InvalidOperationException)
+            {
+                throw new ValueError(ex.Message);
+            }
         }
 
         // -------------------------------------
@@ -720,14 +709,14 @@ namespace M18BatteryInfo
         // -------------------------------------
         public void idle()
         {
-            port.BreakState = true;
-            port.DtrEnable = true;
+            port.SetBreak(true);
+            port.SetDtr(true);
         }
 
         public void high()
         {
-            port.BreakState = false;
-            port.DtrEnable = false;
+            port.SetBreak(false);
+            port.SetDtr(false);
         }
 
         public void high_for(double duration)

@@ -277,10 +277,12 @@ namespace M18BatteryInfo
                 WriteTimeout = 800 // Set write timeout to fail fast if driver stalls.
             };
 
+            _port.DtrEnable = true; // Match pyserial default before opening the port.
+            _port.RtsEnable = false; // Match pyserial default before opening the port.
+            LogDebug($"Control line defaults before open: DTR={_port.DtrEnable}, RTS={_port.RtsEnable}."); // Trace pre-open control-line states.
             LogDebug("Opening serial port..."); // Trace start of open call.
             _port.Open(); // Acquire OS handle; this toggles control lines to default states.
-            LogDebug("Serial port opened. Setting TX to idle state."); // Notify that handle is open.
-            Idle(); // Immediately assert BreakState/DTR to drive TX low; prevents spurious high pulses on battery pin.
+            LogDebug($"Serial port opened. Control lines after open: DTR={_port.DtrEnable}, RTS={_port.RtsEnable}."); // Confirm open and capture post-open states.
             LogDebug("Protocol initialization complete."); // Signal completion.
         }
 

@@ -376,11 +376,10 @@ namespace M18BatteryInfo
         {
             port.PurgeRx();
             var msb = command.Select(b => (byte)reverse_bits(b)).ToArray();
-            var msbPrint = string.Join(" ", GetHex(msb));
-
             if (PRINT_TX)
             {
-                LogTx($"Sending:  {msbPrint}");
+                var logBytes = msb.ToArray();
+                LogTx("Sending: " + BitConverter.ToString(logBytes).Replace("-", " "));
             }
 
             port.WriteBytes(msb);
@@ -481,14 +480,16 @@ namespace M18BatteryInfo
             cmd.AddRange(BitConverter.GetBytes((ushort)MAX_CURRENT).Reverse());
             cmd.Add(state);
             cmd.Add(13);
-            send_command(cmd.ToArray());
+            var cmdBytes = cmd.ToArray();
+            send_command(cmdBytes);
             return read_response(5);
         }
 
         public byte[] get_snapchat()
         {
             var cmd = new List<byte> { SNAP_CMD, (byte)ACC, 0 };
-            send_command(cmd.ToArray());
+            var cmdBytes = cmd.ToArray();
+            send_command(cmdBytes);
             update_acc();
             return read_response(8);
         }
@@ -496,14 +497,16 @@ namespace M18BatteryInfo
         public byte[] keepalive()
         {
             var cmd = new List<byte> { KEEPALIVE_CMD, (byte)ACC, 0 };
-            send_command(cmd.ToArray());
+            var cmdBytes = cmd.ToArray();
+            send_command(cmdBytes);
             return read_response(9);
         }
 
         public byte[] calibrate()
         {
             var cmd = new List<byte> { CAL_CMD, (byte)ACC, 0 };
-            send_command(cmd.ToArray());
+            var cmdBytes = cmd.ToArray();
+            send_command(cmdBytes);
             update_acc();
             return read_response(8);
         }
@@ -603,7 +606,8 @@ namespace M18BatteryInfo
 
             reset();
             var cmdBuf = new List<byte> { cmdByte, 0x04, 0x03, msb, lsb, length };
-            send_command(cmdBuf.ToArray());
+            var cmdBytes = cmdBuf.ToArray();
+            send_command(cmdBytes);
             var data = read_response(retLen);
             var dataPrint = string.Join(" ", GetHex(data));
             Console.WriteLine($"Response from: 0x{(msb * 0x100 + lsb):04X}: {dataPrint}");
@@ -614,7 +618,8 @@ namespace M18BatteryInfo
         public byte[] cmd(int a, int b, int c, int length, byte command = 0x01)
         {
             var cmdBuf = new List<byte> { command, 0x04, 0x03, (byte)a, (byte)b, (byte)c };
-            send_command(cmdBuf.ToArray());
+            var cmdBytes = cmdBuf.ToArray();
+            send_command(cmdBytes);
             return read_response(length);
         }
 
@@ -673,7 +678,8 @@ namespace M18BatteryInfo
         public byte[] wcmd(byte a, byte b, byte c, int length)
         {
             var cmdBuf = new List<byte> { 0x01, 0x05, 0x03, a, b, c };
-            send_command(cmdBuf.ToArray());
+            var cmdBytes = cmdBuf.ToArray();
+            send_command(cmdBytes);
             return read_response(length);
         }
 

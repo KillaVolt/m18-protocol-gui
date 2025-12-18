@@ -53,7 +53,7 @@ namespace M18BatteryInfo
             }
         }
 
-        public FtdiD2xxPort port;
+        public SerialPortConnection port;
 
         // ---------------------------
         // Data tables copied verbatim from m18.py
@@ -265,10 +265,10 @@ namespace M18BatteryInfo
         // -------------------------------------
         // Constructor mirroring __init__ in m18.py
         // -------------------------------------
-        public M18Protocol(FtdiDeviceDisplay device, Action<string>? rawLogger = null)
+        public M18Protocol(SerialPortDisplay device, Action<string>? rawLogger = null)
         {
             RawLogger = rawLogger;
-            port = new FtdiD2xxPort(device, RawLogger);
+            port = new SerialPortConnection(device, RawLogger);
             idle();
         }
 

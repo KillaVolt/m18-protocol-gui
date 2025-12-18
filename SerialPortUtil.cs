@@ -21,9 +21,9 @@ using Microsoft.Win32.SafeHandles; // Safe handle wrapper for registry keys open
 namespace M18BatteryInfo;
 
 /// <summary>
-/// Provides serial port enumeration using Windows SetupAPI to capture detailed descriptions similar
-/// to Python's pyserial list_ports.comports(). The class combines multiple discovery sources (friendly
-/// names, registry keys, and GetPortNames) to produce robust metadata for UI display and debugging.
+    /// Provides serial port enumeration using Windows SetupAPI to capture detailed descriptions similar
+    /// to Python's pyserial list_ports.comports(). The class combines multiple discovery sources (friendly
+    /// names, registry keys, and GetPortNames) to produce robust metadata for UI display and debugging.
 /// </summary>
 internal static class SerialPortUtil
 {
@@ -53,7 +53,7 @@ internal static class SerialPortUtil
     /// <summary>
     /// Enumerates serial ports using SetupAPI and returns metadata suitable for UI display. This helper
     /// remains to correlate FTDI serial numbers with COM port assignments for reference only; all I/O
-    /// flows through the D2XX driver.
+    /// now flows through System.IO.Ports.SerialPort.
     /// </summary>
     /// <param name="debugLogger">Optional logger for verbose debug output.</param>
     /// <returns>Ordered list of serial port metadata.</returns>

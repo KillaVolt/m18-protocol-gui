@@ -9,7 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FTD2XX.Net" Version="1.0.15" />
     <PackageReference Include="System.Management" Version="10.0.1" />
   </ItemGroup>
 

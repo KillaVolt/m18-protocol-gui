@@ -41,6 +41,8 @@ namespace M18BatteryInfo
         public bool PRINT_RX = false;
         public bool PRINT_TX_SAVE = false;
         public bool PRINT_RX_SAVE = false;
+        public Action<string>? TxLogger { get; set; }
+        public Action<string>? RxLogger { get; set; }
 
         public SerialPort port;
 
@@ -365,6 +367,18 @@ namespace M18BatteryInfo
             ACC = accValues[nextIndex];
         }
 
+        public bool PrintTx
+        {
+            get => PRINT_TX;
+            set => PRINT_TX = value;
+        }
+
+        public bool PrintRx
+        {
+            get => PRINT_RX;
+            set => PRINT_RX = value;
+        }
+
         public int reverse_bits(int value)
         {
             return Convert.ToInt32(string.Concat(Convert.ToString(value & 0xFF, 2).PadLeft(8, '0').Reverse()), 2);
@@ -402,7 +416,7 @@ namespace M18BatteryInfo
 
             if (PRINT_TX)
             {
-                Console.WriteLine($"Sending:  {debugPrint}");
+                LogTx($"Sending:  {debugPrint}");
             }
 
             port.Write(msb.ToArray(), 0, msb.Count);
@@ -442,10 +456,32 @@ namespace M18BatteryInfo
             var debugPrint = string.Join(" ", GetHex(lsbResponse));
             if (PRINT_RX)
             {
-                Console.WriteLine($"Received: {debugPrint}");
+                LogRx($"Received: {debugPrint}");
             }
             Thread.Sleep(50);
             return lsbResponse.ToArray();
+        }
+
+        private void LogTx(string message)
+        {
+            if (TxLogger != null)
+            {
+                TxLogger(message);
+                return;
+            }
+
+            Console.WriteLine(message);
+        }
+
+        private void LogRx(string message)
+        {
+            if (RxLogger != null)
+            {
+                RxLogger(message);
+                return;
+            }
+
+            Console.WriteLine(message);
         }
 
         private byte ReadOneByte()

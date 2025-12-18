@@ -375,19 +375,15 @@ namespace M18BatteryInfo
         public void send(byte[] command)
         {
             port.PurgeRx();
-            var debugPrint = string.Join(" ", GetHex(command));
-            var msb = new List<byte>();
-            foreach (var b in command)
-            {
-                msb.Add((byte)reverse_bits(b));
-            }
+            var msb = command.Select(b => (byte)reverse_bits(b)).ToArray();
+            var msbPrint = string.Join(" ", GetHex(msb));
 
             if (PRINT_TX)
             {
-                LogTx($"Sending:  {debugPrint}");
+                LogTx($"Sending:  {msbPrint}");
             }
 
-            port.WriteBytes(msb.ToArray());
+            port.WriteBytes(msb);
         }
 
         public void send_command(byte[] command)

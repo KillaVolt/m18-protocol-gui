@@ -434,7 +434,7 @@ internal static class SerialPortUtil
         int samDesired);
 }
 
-internal sealed record SerialPortDisplay(
+public sealed record SerialPortDisplay(
     string PortName,
     string? Description,
     string? Manufacturer,

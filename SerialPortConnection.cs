@@ -128,6 +128,6 @@ public sealed class SerialPortConnection : IDisposable
 
     private static string FormatHex(IEnumerable<byte> data)
     {
-        return string.Join(" ", data.Select(b => $"0x{b:X2}"));
+        return string.Join(" ", data.Select(b => $"{b:X2}"));
     }
 }

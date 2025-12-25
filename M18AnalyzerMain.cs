@@ -3,17 +3,18 @@
 // ------------------
 // Hosts the user-facing WinForms logic for the Milwaukee M18 battery analyzer GUI. This partial
 // class pairs with M18AnalyzerMain.Designer.cs (UI layout) to render the form and wire up buttons,
-// combo boxes, and rich text boxes. It acts as a bridge between the UI events and the lower-level
-// serial protocol implementation in M18Protocol.cs as well as the serial-port discovery helper
-// SerialPortUtil.cs. Every method and key line is commented to teach WinForms fundamentals (event
-// registration, marshaling to the UI thread), serial programming (driving DTR/Break for idle/high),
-// and logging approaches. Reading the comments alone should explain how the GUI controls map to the
-// electrical behavior on the FT232/COM port pins and how the protocol layer is orchestrated.
+// combo boxes, and rich text boxes. It now acts as a bridge between UI events and the authoritative
+// Python implementation (m18.py), launching the script as a child process and streaming stdout/stderr
+// into the existing logs. Serial port discovery still flows through SerialPortUtil.cs so the user can
+// select the COM port that will be passed to Python. Every method and key line is commented to teach
+// WinForms fundamentals (event registration, marshaling to the UI thread) and logging approaches.
 // *************************************************************************************************
 
 using System; // Provides core types like EventArgs, Action, and DateTime used throughout the form.
 using System.Collections.Generic; // Supplies List<T> for storing serial port objects.
+using System.IO; // Validates python and script paths.
 using System.Linq; // Enables LINQ helpers such as Select and ToList used during logging.
+using System.Threading; // Supports cancellation and timeouts.
 using System.Threading.Tasks; // Enables Task.Run for background work that keeps the UI responsive.
 using System.Windows.Forms; // Provides Form, control types, and dialog helpers used by WinForms.
 
@@ -23,14 +24,20 @@ namespace M18BatteryInfo
     /// The primary WinForms window that presents user controls for serial port selection,
     /// connection management, and protocol commands (idle/high/reset/health-report). This class
     /// captures events fired by buttons and other controls, marshals work to background threads so
-    /// the UI does not freeze, and forwards user actions to <see cref="M18Protocol"/> which drives
-    /// the UART (TX) line high/low and exchanges bytes with the battery BMS. It also uses
-    /// <see cref="SerialPortUtil"/> to enumerate serial ports with extended metadata.
+    /// the UI does not freeze, and forwards user actions to the Python reference implementation
+    /// (m18.py). It also uses <see cref="SerialPortUtil"/> to enumerate serial ports with extended
+    /// metadata for the Python process to consume.
     /// </summary>
     public partial class frmMain : Form
     {
-        // Backing field holding the active protocol connection. Null means no port is open.
-        private M18Protocol? _protocol; // M18Protocol manipulates FT_SetBreak/FT_SetDtr to emulate charger signals.
+        // Hosts the interactive Python session.
+        private PythonProcessController? _pythonController;
+        // Persisted settings for python and script locations.
+        private readonly AppSettings _settings = AppSettings.Load();
+        // Tracks whether a Python command is currently in-flight (waiting for prompt).
+        private bool _isPythonBusy;
+        // Timeout used when waiting for Python to return to the REPL prompt.
+        private readonly TimeSpan _commandTimeout = TimeSpan.FromSeconds(15);
         // Track whether the simple output RichTextBox already has content to manage newlines.
         private bool _hasAppendedLog; // Ensures we only prepend Environment.NewLine after the first log line.
         // Track whether the advanced output RichTextBox already has content.
@@ -56,12 +63,12 @@ namespace M18BatteryInfo
             // Wire up button click and change handlers to their corresponding methods. Delegates are
             // created here to keep designer file clean and to demonstrate event subscription syntax.
             btnRefresh.Click += btnRefresh_Click; // Refresh list of serial ports when "Refresh" pressed.
-            btnConnect.Click += btnConnect_Click; // Attempt to open serial port when "Connect" pressed.
-            btnDisconnect.Click += btnDisconnect_Click; // Close serial port when "Disconnect" pressed.
-            btnIdle.Click += btnIdle_Click; // Drive TX low (Break/DTR asserted) to simulate idle charger pin.
-            btnActive.Click += btnActive_Click; // Drive TX high (Break/DTR deasserted) to simulate charging.
-            btnHealthReport.Click += btnHealthReport_Click; // Trigger multi-register read to show battery stats.
-            btnReset.Click += btnReset_Click; // Send reset handshake (BREAK + SYNC byte) to battery.
+            btnConnect.Click += btnConnect_Click; // Launch Python on the selected port when "Connect" pressed.
+            btnDisconnect.Click += btnDisconnect_Click; // Stop the Python process when "Disconnect" pressed.
+            btnIdle.Click += btnIdle_Click; // Ask Python to drive TX low (idle charger pin).
+            btnActive.Click += btnActive_Click; // Ask Python to drive TX high (charging simulation).
+            btnHealthReport.Click += btnHealthReport_Click; // Trigger multi-register read via Python health().
+            btnReset.Click += btnReset_Click; // Send reset handshake through Python.
             btnCopyOutput.Click += btnCopyOutput_Click; // Copy logs to clipboard for sharing/debugging.
             chkbxTXLog.CheckedChanged += chkbxTXLog_CheckedChanged; // Toggle TX byte logging.
             chkboxRxLog.CheckedChanged += chkboxRxLog_CheckedChanged; // Toggle RX byte logging.
@@ -69,9 +76,9 @@ namespace M18BatteryInfo
             cmbBxSerialPort.SelectedIndexChanged += cmbBxSerialPort_SelectedIndexChanged; // Capture selected serial port.
             FormClosing += frmMain_FormClosing; // Ensure we cleanly close serial port when form closes.
 
-            // Default logging preferences to on so that users see both TX and RX traffic.
-            chkbxTXLog.Checked = true; // Enables printing TX bytes through M18Protocol.TxLogger.
-            chkboxRxLog.Checked = true; // Enables printing RX bytes through M18Protocol.RxLogger.
+            // Default logging preferences to on to maintain parity with previous UI.
+            chkbxTXLog.Checked = true; // TX log checkbox retained for compatibility.
+            chkboxRxLog.Checked = true; // RX log checkbox retained for compatibility.
 
             // Provide friendly tooltips describing each control's purpose.
             toolTipSimpleTab.SetToolTip(btnRefresh, "Refresh the list of available serial ports."); // Helps beginners understand UI flow.
@@ -79,9 +86,11 @@ namespace M18BatteryInfo
             toolTipSimpleTab.SetToolTip(btnDisconnect, "Disconnect from the currently connected device."); // Clarifies safe disconnect.
             toolTipSimpleTab.SetToolTip(btnIdle, "Drive TX low (idle). Safe for connect/disconnect."); // Notes electrical effect on TX line.
             toolTipSimpleTab.SetToolTip(btnActive, "Drive TX high (active). Charger simulation."); // Indicates charger-simulation state.
-            toolTipSimpleTab.SetToolTip(btnHealthReport, "Read and display a basic battery health report."); // References M18Protocol.HealthReport.
-            toolTipSimpleTab.SetToolTip(btnReset, "Send a reset signal to the connected battery."); // Tied to M18Protocol.Reset handshake.
+            toolTipSimpleTab.SetToolTip(btnHealthReport, "Read and display a basic battery health report.");
+            toolTipSimpleTab.SetToolTip(btnReset, "Send a reset signal to the connected battery.");
             toolTipSimpleTab.SetToolTip(btnCopyOutput, "Copy all output log text to the clipboard."); // Guides how to export logs.
+
+            InitializePythonController(); // Prepare the Python process host and logging bridges.
 
             UpdateConnectionUi(false); // Disable connection-dependent buttons until a port opens.
         }
@@ -94,6 +103,25 @@ namespace M18BatteryInfo
         {
             // No logic implemented. Keeping the method demonstrates the event handler pattern that
             // other buttons follow. Deleting could break designer hookups, so it stays as a template.
+        }
+
+        /// <summary>
+        /// Create a fresh PythonProcessController instance and wire its events into the existing log
+        /// surfaces so stdout/stderr are mirrored into the UI.
+        /// </summary>
+        private void InitializePythonController()
+        {
+            _pythonController?.Dispose();
+            _pythonController = new PythonProcessController(_settings.PythonExecutablePath, _settings.ScriptPath);
+            _pythonController.OutputReceived += line => AppendPythonLog(line, false);
+            _pythonController.ErrorReceived += line => AppendPythonLog(line, true);
+            _pythonController.PromptDetected += () => SetPythonBusy(false);
+            _pythonController.Exited += exitCode =>
+            {
+                AppendLogBoth($"Python process exited (code: {exitCode?.ToString() ?? "unknown"}).");
+                SetPythonBusy(false);
+                UpdateConnectionUi(false);
+            };
         }
 
         /// <summary>
@@ -222,50 +250,44 @@ namespace M18BatteryInfo
         }
 
         /// <summary>
-        /// Opens a serial connection using the selected port. Ensures any existing connection is
-        /// closed first, then spins up <see cref="M18Protocol"/> on a background thread to avoid UI
-        /// blocking while the serial driver initializes the UART pins.
+        /// Launches the Python process against the selected port. Validates configured paths before
+        /// starting so the backend can run without blocking the UI thread.
         /// </summary>
         private async void btnConnect_Click(object? sender, EventArgs e)
         {
-            LogDebugAction("Requesting Connect()."); // Debug log entry noting button press.
-            if (cmbBxSerialPort.SelectedItem is not SerialPortDisplay selectedPort)
+            LogDebugAction("Requesting Python connect."); // Debug log entry noting button press.
+            if (_pythonController?.IsRunning == true)
             {
-                AppendLog("No serial port selected. Please choose a port before connecting."); // User guidance when no selection exists.
-                MessageBox.Show("Please select a serial port before connecting.", "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Warning); // Modal dialog prevents accidental action.
-                return; // Abort connect flow.
+                AppendLogBoth("Python process is already running.");
+                return;
             }
 
-            if (_protocol != null)
+            if (!ValidatePythonPaths())
             {
-                if (string.Equals(_protocol.port.Device.PortName, selectedPort.PortName, StringComparison.OrdinalIgnoreCase))
-                {
-                    AppendLogBoth($"Port {selectedPort.DisplayName} is already open. Ignoring duplicate connect request."); // Avoid reopening same port.
-                    MessageBox.Show($"{selectedPort.DisplayName} is already open.", "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Information); // Notify user.
-                    return; // Exit without reopening.
-                }
-
-                AppendLogBoth($"A different port ({_protocol.port.Device.PortName}) is currently open. Closing it before opening {selectedPort.DisplayName}..."); // Explain why we close first.
-                await DisconnectAsync(); // Close current protocol instance to free COM port handle.
+                return;
             }
 
-            var selectedDescription = _selectedDeviceDescription ?? selectedPort.DisplayName; // Build friendly text for status lines.
-
-            AppendLogBoth($"Attempting to open {selectedDescription} with serial settings: 4800 baud, 8 data bits, parity None, stop bits Two."); // Describe UART config so readers learn standard serial settings.
-            AppendDebugLog("Serial connection will set TX low (idle) after open via Break and DTR."); // Note initial electrical state.
+            var selectedPort = _selectedDevice?.PortName ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(selectedPort))
+            {
+                AppendLog("No serial port selected. Please choose a port before connecting.");
+                MessageBox.Show("Please select a serial port before connecting.", "Python Process", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
 
             try
             {
-                await Task.Run(() => _protocol = new M18Protocol(selectedPort, AppendRawSerialLog)); // Instantiate protocol off-UI thread; constructor opens serial handle and drives TX idle.
-                ApplyProtocolLoggingPreferences(); // Sync checkbox states into protocol PrintTx/PrintRx and hook log delegates.
-                AppendLogBoth($"{selectedDescription} opened successfully."); // Confirm connection to user.
-                UpdateConnectionUi(true); // Toggle button enabled states to reflect connected status.
+                UpdatePythonPathsFromSettings();
+                AppendLogBoth($"Starting m18.py using {_settings.PythonExecutablePath} on port {selectedPort}...");
+                await _pythonController!.StartAsync(selectedPort);
+                AppendLogBoth("m18.py launched. Waiting for prompt...");
+                UpdateConnectionUi(true);
             }
             catch (Exception ex)
             {
-                _protocol = null; // Ensure no dangling protocol reference if open failed.
-                LogError($"Failed to open {selectedDescription}.", ex); // Show error details.
-                UpdateConnectionUi(false); // Re-enable connection buttons so user can retry.
+                AppendLogBoth($"Failed to start m18.py: {ex.Message}");
+                MessageBox.Show($"Failed to start m18.py: {ex.Message}", "Python Process Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UpdateConnectionUi(false);
             }
         }
 
@@ -276,167 +298,78 @@ namespace M18BatteryInfo
         private async void btnDisconnect_Click(object? sender, EventArgs e)
         {
             LogDebugAction(FormatLogMessage("btnDisconnect pressed - requesting DisconnectAsync().")); // Timestamped debug entry.
-            await DisconnectAsync(); // Attempt to close the serial port and dispose protocol safely.
+            await DisconnectAsync(); // Attempt to close the python process safely.
         }
 
         /// <summary>
-        /// Closes the active protocol/serial port if present, optionally informing the user via
-        /// MessageBox. Runs on a background thread to prevent UI freezes if the driver blocks.
+        /// Closes the active python process if present, optionally informing the user via MessageBox.
         /// </summary>
         private async Task DisconnectAsync(bool showUserMessages = true)
         {
-            if (_protocol == null)
+            if (_pythonController == null || !_pythonController.IsRunning)
             {
-                var message = "Disconnect requested, but no serial port is currently open."; // Friendly explanation.
+                var message = "Disconnect requested, but the Python process is not running."; // Friendly explanation.
                 AppendDebugLog(FormatLogMessage(message)); // Debug log for trace.
                 if (showUserMessages)
                 {
                     AppendLog(message); // Display in primary log when requested by user (e.g., clicking Disconnect).
-                    MessageBox.Show(message, "Serial Port", MessageBoxButtons.OK, MessageBoxIcon.Information); // Notify via modal dialog.
+                    MessageBox.Show(message, "Python Process", MessageBoxButtons.OK, MessageBoxIcon.Information); // Notify via modal dialog.
                 }
                 UpdateConnectionUi(false); // Reset UI state regardless.
                 return; // Exit early when nothing to close.
             }
 
-            AppendLogBoth($"Closing {_protocol.port.Device.DisplayName}..."); // Inform user which port is closing.
+            AppendLogBoth("Stopping Python process..."); // Inform user which process is closing.
 
             try
             {
-                await Task.Run(() =>
-                {
-                    if (_protocol.port.IsOpen)
-                    {
-                        _protocol.idle(); // Set TX to idle (safe state) before closing.
-                        _protocol.port.Close(); // Close the underlying serial handle.
-                    }
-                }); // Execute Close on background thread; sets TX idle then disposes serial handle.
-                AppendLogBoth($"{_protocol.port.Device.DisplayName} closed successfully."); // Confirm closure.
+                await _pythonController.StopAsync(TimeSpan.FromSeconds(5));
+                AppendLogBoth("Python process stopped successfully."); // Confirm closure.
             }
             catch (Exception ex)
             {
-                LogError($"Error while closing {_protocol.port.Device.DisplayName}.", ex); // Report exceptions thrown during close.
+                LogError("Error while stopping Python.", ex); // Report exceptions thrown during close.
             }
             finally
             {
-                _protocol = null; // Drop reference to release resources and signal disconnected state.
                 UpdateConnectionUi(false); // Re-enable Connect and refresh buttons.
             }
         }
 
         /// <summary>
-        /// Sets TX line to idle (low) by calling <see cref="M18Protocol.Idle"/>. Idle corresponds to
-        /// FT_SetBreakOn and FT_SetDtr(true), which on FT232 asserts BREAK (logic 0) and DTR
-        /// simultaneously, keeping the battery safe to connect/disconnect.
+        /// Requests Python to set TX line to idle (low) via m.idle().
         /// </summary>
         private async void btnIdle_Click(object? sender, EventArgs e)
         {
-            AppendDebugLog(FormatLogMessage("btnIdle pressed - calling _protocol.Idle().")); // Trace button press.
-            if (!EnsureConnected())
-            {
-                return; // Bail out if no active protocol object.
-            }
-
-            AppendDebugLog(FormatLogMessage("Invoking _protocol.Idle() to drive TX low.")); // Explain electrical effect.
-            try
-            {
-                await Task.Run(() => _protocol!.idle()); // Background call to avoid UI hiccup; idle toggles FT_SetBreakOn/FT_SetDtr.
-                AppendLogBoth("TX set to Idle (low). Safe to connect or disconnect battery. (See Raw Serial Log for control-line calls.)"); // Teach user about safe state.
-            }
-            catch (Exception ex)
-            {
-                LogError("Failed to set TX to Idle.", ex); // Show error if driver throws.
-            }
+            AppendDebugLog(FormatLogMessage("btnIdle pressed - sending m.idle().")); // Trace button press.
+            await SendPythonCommandAsync("m.idle()", "idle (TX low)");
         }
 
         /// <summary>
-        /// Drives TX line high (active) using <see cref="M18Protocol.High"/>. High corresponds to
-        /// FT_SetBreakOff and FT_ClrDtr, emulating a charger engaging the battery's communication line.
+        /// Requests Python to set TX line high (active) via m.high().
         /// </summary>
         private async void btnActive_Click(object? sender, EventArgs e)
         {
-            AppendDebugLog(FormatLogMessage("btnActive pressed - calling _protocol.High().")); // Trace user action.
-            if (!EnsureConnected())
-            {
-                return; // Cannot change TX state without an open port.
-            }
-
-            AppendDebugLog(FormatLogMessage("Invoking _protocol.High() to drive TX high.")); // Clarify electrical behavior.
-            try
-            {
-                await Task.Run(() => _protocol!.high()); // Toggle control lines on background thread.
-                AppendLogBoth("TX set to Active (high). Charger simulation enabled. (See Raw Serial Log for control-line calls.)"); // Show user the state change.
-            }
-            catch (Exception ex)
-            {
-                LogError("Failed to set TX to Active (high).", ex); // Provide actionable error output.
-            }
+            AppendDebugLog(FormatLogMessage("btnActive pressed - sending m.high().")); // Trace user action.
+            await SendPythonCommandAsync("m.high()", "active (TX high)");
         }
 
         /// <summary>
-        /// Initiates a comprehensive battery health report by invoking <see cref="M18Protocol.HealthReport"/>.
-        /// The method reads multiple register blocks from the battery BMS and prints human-readable
-        /// diagnostics to the log window.
+        /// Initiates a comprehensive battery health report by invoking m.health() inside Python.
         /// </summary>
         private async void btnHealthReport_Click(object? sender, EventArgs e)
         {
-            AppendDebugLog(FormatLogMessage("btnHealthReport pressed - calling _protocol.HealthReport().")); // Trace user action.
-            if (!EnsureConnected())
-            {
-                return; // Skip if no connection available.
-            }
-
-            try
-            {
-                AppendDebugLog(FormatLogMessage("Starting health report collection (mirrors m18.py health()).")); // Note parity with Python script.
-                var report = await Task.Run(() =>
-                {
-                    // Use the existing health() method and capture its output.
-                    // We'll redirect Console output to a string.
-                    using (var sw = new System.IO.StringWriter())
-                    {
-                        var originalOut = Console.Out;
-                        Console.SetOut(sw);
-                        _protocol!.health(true); // Call the health method (force_refresh: true)
-                        Console.SetOut(originalOut);
-                        return sw.ToString();
-                    }
-                }); // Run heavy register reads off UI thread.
-                AppendLog("=== Health report ==="); // Header in simple log.
-                foreach (var line in report.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None))
-                {
-                    AppendLog(line); // Preserve line breaks by appending each separately.
-                }
-                AppendLog("Health report complete."); // Footer for clarity.
-                AppendDebugLog(FormatLogMessage("Health report appended to output.")); // Debug trace.
-            }
-            catch (Exception ex)
-            {
-                LogError("Health report failed.", ex); // Surface exceptions (timeout, parsing errors).
-            }
+            AppendDebugLog(FormatLogMessage("btnHealthReport pressed - sending m.health().")); // Trace user action.
+            await SendPythonCommandAsync("m.health()", "health report");
         }
 
         /// <summary>
-        /// Issues a reset command to the battery by toggling BREAK/DTR and sending the SYNC byte via
-        /// <see cref="M18Protocol.Reset"/>. This simulates a charger reset line pulsing low/high.
+        /// Issues a reset command to the battery by invoking m.reset() within Python.
         /// </summary>
         private async void btnReset_Click(object? sender, EventArgs e)
         {
-            LogDebugAction("Requesting _protocol.Reset()."); // Note action for trace.
-            if (!EnsureConnected())
-            {
-                return; // Cannot reset without open port.
-            }
-
-            try
-            {
-                AppendDebugLog("Sending reset sequence (BREAK/DTR + SYNC)."); // Explain protocol handshake.
-                var success = await Task.Run(() => _protocol!.reset()); // Execute reset on worker thread; toggles control lines and reads response.
-                AppendLogBoth(success ? "Reset command acknowledged by device." : "Reset command did not receive expected response."); // Inform user of result.
-            }
-            catch (Exception ex)
-            {
-                LogError("Reset failed.", ex); // Show errors such as port access issues.
-            }
+            LogDebugAction("Requesting Python reset command."); // Note action for trace.
+            await SendPythonCommandAsync("m.reset()", "reset");
         }
 
         /// <summary>
@@ -457,20 +390,143 @@ namespace M18BatteryInfo
         }
 
         /// <summary>
-        /// Ensures there is an active connection before executing protocol operations. Shows a
-        /// MessageBox when not connected so the user knows to click Connect first.
+        /// Sends a command into the Python REPL and handles prompt/timeout state transitions.
         /// </summary>
-        private bool EnsureConnected()
+        private async Task SendPythonCommandAsync(string command, string description)
         {
-            LogDebugAction(FormatLogMessage("Checking EnsureConnected().")); // Trace call origin.
-            if (_protocol != null)
+            if (!EnsurePythonRunning())
             {
-                return true; // Connection exists, safe to proceed.
+                return;
             }
 
-            AppendLog("No active connection. Please connect to a serial port first."); // User-friendly guidance.
-            MessageBox.Show("Please connect to a serial port first.", "Connection required", MessageBoxButtons.OK, MessageBoxIcon.Warning); // Modal warning clarifies next step.
-            return false; // Signal caller to abort operation.
+            AppendLogBoth($"Sending {description} command to Python: {command}");
+            SetPythonBusy(true);
+
+            try
+            {
+                var success = await _pythonController!.SendCommandAsync(command, _commandTimeout);
+                if (!success)
+                {
+                    AppendLogBoth($"Timed out waiting for Python prompt after '{command}'. The process is still running.");
+                    SetPythonBusy(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                SetPythonBusy(false);
+                LogError($"Failed to send command '{command}' to Python.", ex);
+            }
+        }
+
+        /// <summary>
+        /// Ensures the Python backend is running before dispatching commands.
+        /// </summary>
+        private bool EnsurePythonRunning()
+        {
+            if (_pythonController?.IsRunning == true)
+            {
+                return true;
+            }
+
+            AppendLog("Python process is not running. Please connect first.");
+            MessageBox.Show("Start the Python process with the Connect button before sending commands.", "Python Process", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return false;
+        }
+
+        /// <summary>
+        /// Validate configured paths and prompt the user to locate python.exe or m18.py when missing.
+        /// </summary>
+        private bool ValidatePythonPaths()
+        {
+            if (!File.Exists(_settings.ScriptPath))
+            {
+                var message = $"Could not find m18.py at '{_settings.ScriptPath}'. Please locate the script.";
+                AppendLogBoth(message);
+                MessageBox.Show(message, "m18.py Missing", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                using var dialog = new OpenFileDialog
+                {
+                    Filter = "Python Script|m18.py;*.py|All Files|*.*",
+                    Title = "Select m18.py",
+                    FileName = "m18.py"
+                };
+
+                if (dialog.ShowDialog() != DialogResult.OK)
+                {
+                    return false;
+                }
+
+                _settings.ScriptPath = dialog.FileName;
+                _settings.Save();
+                InitializePythonController();
+            }
+
+            if (PathLooksLikeFile(_settings.PythonExecutablePath) && !File.Exists(_settings.PythonExecutablePath))
+            {
+                var message = $"Could not find python executable at '{_settings.PythonExecutablePath}'. Please locate python.exe.";
+                AppendLogBoth(message);
+                MessageBox.Show(message, "Python Missing", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                using var dialog = new OpenFileDialog
+                {
+                    Filter = "Python|python.exe;python|All Files|*.*",
+                    Title = "Select python executable",
+                    FileName = "python.exe"
+                };
+
+                if (dialog.ShowDialog() != DialogResult.OK)
+                {
+                    return false;
+                }
+
+                _settings.PythonExecutablePath = dialog.FileName;
+                _settings.Save();
+                InitializePythonController();
+            }
+
+            return true;
+        }
+
+        private static bool PathLooksLikeFile(string path)
+        {
+            return path.Contains(Path.DirectorySeparatorChar) || path.Contains(Path.AltDirectorySeparatorChar);
+        }
+
+        /// <summary>
+        /// Sync controller paths with the persisted settings in case the user updated them on disk.
+        /// </summary>
+        private void UpdatePythonPathsFromSettings()
+        {
+            if (_pythonController == null)
+            {
+                InitializePythonController();
+            }
+            else
+            {
+                _pythonController.PythonExecutablePath = _settings.PythonExecutablePath;
+                _pythonController.ScriptPath = _settings.ScriptPath;
+            }
+        }
+
+        /// <summary>
+        /// Route Python stdout/stderr into the existing logs with a timestamp and error marker.
+        /// </summary>
+        private void AppendPythonLog(string line, bool isError)
+        {
+            var tagged = isError ? $"[stderr] {line}" : line;
+            var formatted = FormatLogMessage(tagged);
+            AppendSimpleLog(formatted);
+            AppendDebugLog(formatted);
+        }
+
+        /// <summary>
+        /// Update UI state to reflect Python busy/idle states and disable command buttons while a
+        /// command is outstanding.
+        /// </summary>
+        private void SetPythonBusy(bool busy)
+        {
+            _isPythonBusy = busy;
+            UpdateConnectionUi(_pythonController?.IsRunning == true);
         }
 
         /// <summary>
@@ -627,50 +683,15 @@ namespace M18BatteryInfo
         }
 
         /// <summary>
-        /// Applies checkbox settings to the protocol instance so TX/RX byte logging aligns with user
-        /// preferences, and wires the protocol's TxLogger/RxLogger delegates to the UI log writers.
+        /// The legacy TX/RX log toggles remain for UI continuity; Python output is always captured to
+        /// comply with the requirement that no lines are dropped.
         /// </summary>
-        private void ApplyProtocolLoggingPreferences()
-        {
-            if (_protocol == null)
-            {
-                return; // Nothing to configure if no active protocol.
-            }
-
-            _protocol.PRINT_TX = chkbxTXLog.Checked; // Mirror checkbox to protocol flag controlling TX byte echo.
-            _protocol.PRINT_RX = chkboxRxLog.Checked; // Mirror checkbox to protocol flag controlling RX byte echo.
-            _protocol.TxLogger = message =>
-            {
-                AppendProtocolLog(message); // Route TX log messages into all log panes.
-            };
-            _protocol.RxLogger = message =>
-            {
-                AppendProtocolLog(message); // Route RX log messages into all log panes.
-            };
-            _protocol.RawLogger = AppendRawSerialLog; // Route raw serial call traces into the dedicated tab.
-        }
+        private void chkbxTXLog_CheckedChanged(object? sender, EventArgs e) => AppendDebugLog(FormatLogMessage("TX log checkbox toggled (Python output remains enabled)."));
 
         /// <summary>
-        /// Updates protocol TX logging preference when the TX checkbox changes.
+        /// The legacy RX log toggle is informational only for the Python bridge.
         /// </summary>
-        private void chkbxTXLog_CheckedChanged(object? sender, EventArgs e)
-        {
-            if (_protocol != null)
-            {
-                _protocol.PRINT_TX = chkbxTXLog.Checked; // Immediately reflect UI change in protocol.
-            }
-        }
-
-        /// <summary>
-        /// Updates protocol RX logging preference when the RX checkbox changes.
-        /// </summary>
-        private void chkboxRxLog_CheckedChanged(object? sender, EventArgs e)
-        {
-            if (_protocol != null)
-            {
-                _protocol.PRINT_RX = chkboxRxLog.Checked; // Immediately reflect UI change in protocol.
-            }
-        }
+        private void chkboxRxLog_CheckedChanged(object? sender, EventArgs e) => AppendDebugLog(FormatLogMessage("RX log checkbox toggled (Python output remains enabled)."));
 
         /// <summary>
         /// Convenience wrapper to send a debug message to the dedicated debug log pane.
@@ -728,10 +749,11 @@ namespace M18BatteryInfo
         {
             btnConnect.Enabled = !connected; // Disable Connect when connected to prevent double opens.
             btnDisconnect.Enabled = connected; // Enable Disconnect to allow clean closure.
-            btnIdle.Enabled = connected; // Only allow TX toggling when port is open.
-            btnActive.Enabled = connected; // Only allow TX toggling when port is open.
-            btnHealthReport.Enabled = connected; // Health report requires open protocol.
-            btnReset.Enabled = connected; // Reset requires open protocol.
+            var commandsEnabled = connected && !_isPythonBusy;
+            btnIdle.Enabled = commandsEnabled; // Only allow TX toggling when process is ready.
+            btnActive.Enabled = commandsEnabled; // Only allow TX toggling when process is ready.
+            btnHealthReport.Enabled = commandsEnabled; // Health report requires running process.
+            btnReset.Enabled = commandsEnabled; // Reset requires running process.
             btnCopyOutput.Enabled = true; // Copy is always allowed because it is read-only.
             btnTestFT232.Enabled = !connected; // Prevent running FT232 test while another session holds the port.
             cmbBxSerialPort.Enabled = !connected; // Lock selection to avoid confusion while connected.
@@ -786,28 +808,7 @@ namespace M18BatteryInfo
         /// </summary>
         private void btnTestEcho_Click(object sender, EventArgs e)
         {
-            rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Starting raw echo test on {_protocol?.port.Device.DisplayName ?? "??"}\n"); // Timestamp test start with chosen device.
-            try
-            {
-                if (_protocol?.port.IsOpen != true)
-                {
-                    rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Serial port not open. Connect first.\n"); // Warn user that port must be open.
-                    return; // Exit early because no active serial handle exists.
-                }
-
-                _protocol.port.PurgeRx(); // Clear inbound buffer to remove stale bytes before test.
-
-                byte[] send = { 0xAA }; // Single SYNC-like byte to transmit; echoed devices should return it.
-                _protocol.port.WriteBytes(send); // Write to UART TX line; SerialPort shifts bits out over USB-UART bridge.
-                rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Sent byte 0xAA.\n"); // Confirm transmission to user.
-
-                var response = _protocol.port.ReadBytes(1); // Block up to timeout waiting for one byte on RX.
-                rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Received byte: 0x{response[0]:X2}\n"); // Show returned byte in hex for clarity.
-            }
-            catch (Exception ex)
-            {
-                rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Exception: {ex.Message}\n"); // Capture and display any exceptions (IO errors, timeouts).
-            }
+            rtbDebugOutput.AppendText($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Raw echo test is not available when controlling the Python reference implementation.\n");
         }
     }
 }

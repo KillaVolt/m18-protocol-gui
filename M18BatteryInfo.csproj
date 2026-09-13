@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="RJCP.SerialPortStream" Version="2.5.1" />
+    <PackageReference Include="RJCP.SerialPortStream" Version="3.0.0" />
     <PackageReference Include="System.Management" Version="10.0.1" />
   </ItemGroup>
 

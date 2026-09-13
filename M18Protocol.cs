@@ -31,8 +31,8 @@ namespace M18BatteryInfo
         public const byte SNAP_CMD = 0x61;
         public const byte KEEPALIVE_CMD = 0x62;
 
-        public const int CUTOFF_CURRENT = 300;
-        public const int MAX_CURRENT = 6000;
+        public const int DEFAULT_CUTOFF_CURRENT = 300;
+        public const int DEFAULT_MAX_CURRENT = 6000;
 
         // ---------------------------
         // State fields (mirror Python names and defaults)
@@ -42,6 +42,8 @@ namespace M18BatteryInfo
         public bool PRINT_RX = false;
         public bool PRINT_TX_SAVE = false;
         public bool PRINT_RX_SAVE = false;
+        public int CUTOFF_CURRENT = DEFAULT_CUTOFF_CURRENT;
+        public int MAX_CURRENT = DEFAULT_MAX_CURRENT;
         public Action<string>? TxLogger { get; set; }
         public Action<string>? RxLogger { get; set; }
         private Action<string>? rawLogger;
@@ -957,6 +959,7 @@ namespace M18BatteryInfo
 
                 if ((output == "array" || output == "form") && array.Count > 0)
                 {
+                    idle();
                     return array;
                 }
 
@@ -1179,16 +1182,6 @@ namespace M18BatteryInfo
         // -------------------------------------
         public void submit_form()
         {
-            var formUrl = "https://docs.google.com/forms/d/e/1FAIpQLScvTbSDYBzSQ8S4XoF-rfgwNj97C-Pn4Px3GIixJxf0C1YJJA/formResponse";
-            Console.WriteLine("Getting data from battery...");
-            var output = read_id(output: "form") as List<object?>;
-
-            if (output == null)
-            {
-                Console.WriteLine("submit_form: No output returned, aborting");
-            }
-            var s_output = output != null ? string.Join("\n", output) : string.Empty;
-
             Console.WriteLine("Please provide this information. All the values can be found on the label under the battery.");
             Console.Write("Enter One-Key ID (example: H18FDCAD): ");
             var one_key_id = Console.ReadLine() ?? string.Empty;
@@ -1202,6 +1195,22 @@ namespace M18BatteryInfo
             var model_type = Console.ReadLine() ?? string.Empty;
             Console.Write("Enter Capacity (example: 9.0Ah): ");
             var capacity = Console.ReadLine() ?? string.Empty;
+
+            submit_form(one_key_id, date, serial_number, sticker, model_type, capacity);
+        }
+
+        public void submit_form(string one_key_id, string date, string serial_number, string sticker, string model_type, string capacity)
+        {
+            const string formUrl = "https://docs.google.com/forms/d/e/1FAIpQLScvTbSDYBzSQ8S4XoF-rfgwNj97C-Pn4Px3GIixJxf0C1YJJA/formResponse";
+            Console.WriteLine("Getting data from battery...");
+            var output = read_id(output: "form") as List<object?>;
+
+            if (output == null)
+            {
+                Console.WriteLine("submit_form: No output returned, aborting");
+                return;
+            }
+            var s_output = string.Join("\n", output);
 
             var formData = new Dictionary<string, string>
             {

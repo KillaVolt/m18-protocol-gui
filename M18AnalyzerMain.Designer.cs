@@ -58,6 +58,7 @@ namespace M18BatteryInfo
             tabAdvanced = new TabPage();
             btnRestoreTxRxState = new Button();
             grpTryCmd = new GroupBox();
+            btnTryCommand = new Button();
             txtTryCmdLength = new TextBox();
             txtAddressLow = new TextBox();
             txtAddressHigh = new TextBox();
@@ -67,6 +68,7 @@ namespace M18BatteryInfo
             lblCommand = new Label();
             txtCommand = new TextBox();
             grpbxDebugCmd = new GroupBox();
+            btnDebugCommand = new Button();
             txtResponseLength = new TextBox();
             txtDebugCmdLength = new TextBox();
             txtAddrLSB = new TextBox();
@@ -108,6 +110,7 @@ namespace M18BatteryInfo
             cmbBxChgProfile = new ComboBox();
             cmbBxBaudRate = new ComboBox();
             tabDiagnostics = new TabPage();
+            btnCollectDiagnostics = new Button();
             btnClearDiagForm = new Button();
             grpboxDiagOutput = new GroupBox();
             rtbSubmitDiagReadOnly = new RichTextBox();
@@ -116,11 +119,13 @@ namespace M18BatteryInfo
             lblToolSerialNum = new Label();
             lblSubmitDiagDate = new Label();
             lblOneKeyID = new Label();
+            lblSubmitDiagCapacity = new Label();
             txtSubmitDiagDate = new TextBox();
             txtSubmitDiagSerial = new TextBox();
             txtSubmitDiagSticker = new TextBox();
             txtSubmitDiagType = new TextBox();
             txtOneKeyID = new TextBox();
+            txtSubmitDiagCapacity = new TextBox();
             btnSubmitDiagForm = new Button();
             tabAbout = new TabPage();
             linkLabelKillaVolt = new LinkLabel();
@@ -136,6 +141,7 @@ namespace M18BatteryInfo
             tabAdvanced.SuspendLayout();
             grpTryCmd.SuspendLayout();
             grpbxDebugCmd.SuspendLayout();
+            tabD2xx.SuspendLayout();
             tabSimulation.SuspendLayout();
             grpBxSimCustomProfile.SuspendLayout();
             tabDiagnostics.SuspendLayout();
@@ -310,7 +316,7 @@ namespace M18BatteryInfo
             lblSerialPort.Name = "lblSerialPort";
             lblSerialPort.Size = new Size(79, 20);
             lblSerialPort.TabIndex = 2;
-            lblSerialPort.Text = "FTDI Device:";
+            lblSerialPort.Text = "Serial Port:";
             // 
             // cmbBxSerialPort
             // 
@@ -347,19 +353,6 @@ namespace M18BatteryInfo
             tabAdvanced.TabIndex = 1;
             tabAdvanced.Text = "Advanced";
             tabAdvanced.UseVisualStyleBackColor = true;
-
-            // 
-            // tabD2xx
-            // 
-            tabD2xx.Controls.Add(rtbD2xxLog);
-            tabD2xx.Location = new Point(4, 29);
-            tabD2xx.Margin = new Padding(2);
-            tabD2xx.Name = "tabD2xx";
-            tabD2xx.Padding = new Padding(2);
-            tabD2xx.Size = new Size(1090, 361);
-            tabD2xx.TabIndex = 2;
-            tabD2xx.Text = "Raw D2XX Log";
-            tabD2xx.UseVisualStyleBackColor = true;
             // 
             // btnRestoreTxRxState
             // 
@@ -373,6 +366,7 @@ namespace M18BatteryInfo
             // 
             // grpTryCmd
             // 
+            grpTryCmd.Controls.Add(btnTryCommand);
             grpTryCmd.Controls.Add(txtTryCmdLength);
             grpTryCmd.Controls.Add(txtAddressLow);
             grpTryCmd.Controls.Add(txtAddressHigh);
@@ -385,10 +379,20 @@ namespace M18BatteryInfo
             grpTryCmd.Margin = new Padding(2);
             grpTryCmd.Name = "grpTryCmd";
             grpTryCmd.Padding = new Padding(2);
-            grpTryCmd.Size = new Size(262, 147);
+            grpTryCmd.Size = new Size(262, 179);
             grpTryCmd.TabIndex = 14;
             grpTryCmd.TabStop = false;
             grpTryCmd.Text = "Try Command";
+            // 
+            // btnTryCommand
+            // 
+            btnTryCommand.Location = new Point(128, 147);
+            btnTryCommand.Margin = new Padding(2);
+            btnTryCommand.Name = "btnTryCommand";
+            btnTryCommand.Size = new Size(129, 27);
+            btnTryCommand.TabIndex = 15;
+            btnTryCommand.Text = "Execute";
+            btnTryCommand.UseVisualStyleBackColor = true;
             // 
             // txtTryCmdLength
             // 
@@ -464,6 +468,7 @@ namespace M18BatteryInfo
             // 
             // grpbxDebugCmd
             // 
+            grpbxDebugCmd.Controls.Add(btnDebugCommand);
             grpbxDebugCmd.Controls.Add(txtResponseLength);
             grpbxDebugCmd.Controls.Add(txtDebugCmdLength);
             grpbxDebugCmd.Controls.Add(txtAddrLSB);
@@ -476,10 +481,20 @@ namespace M18BatteryInfo
             grpbxDebugCmd.Margin = new Padding(2);
             grpbxDebugCmd.Name = "grpbxDebugCmd";
             grpbxDebugCmd.Padding = new Padding(2);
-            grpbxDebugCmd.Size = new Size(262, 147);
+            grpbxDebugCmd.Size = new Size(262, 179);
             grpbxDebugCmd.TabIndex = 13;
             grpbxDebugCmd.TabStop = false;
             grpbxDebugCmd.Text = "Debug Command";
+            // 
+            // btnDebugCommand
+            // 
+            btnDebugCommand.Location = new Point(128, 147);
+            btnDebugCommand.Margin = new Padding(2);
+            btnDebugCommand.Name = "btnDebugCommand";
+            btnDebugCommand.Size = new Size(129, 27);
+            btnDebugCommand.TabIndex = 15;
+            btnDebugCommand.Text = "Execute";
+            btnDebugCommand.UseVisualStyleBackColor = true;
             // 
             // txtResponseLength
             // 
@@ -671,13 +686,24 @@ namespace M18BatteryInfo
             // 
             // rtbAdvOutput
             // 
-            rtbAdvOutput.Location = new Point(179, 160);
+            rtbAdvOutput.Location = new Point(179, 192);
             rtbAdvOutput.Margin = new Padding(2);
             rtbAdvOutput.Name = "rtbAdvOutput";
-            rtbAdvOutput.Size = new Size(532, 142);
+            rtbAdvOutput.Size = new Size(532, 110);
             rtbAdvOutput.TabIndex = 0;
             rtbAdvOutput.Text = "";
-
+            // 
+            // tabD2xx
+            // 
+            tabD2xx.Controls.Add(rtbD2xxLog);
+            tabD2xx.Location = new Point(4, 29);
+            tabD2xx.Margin = new Padding(2);
+            tabD2xx.Name = "tabD2xx";
+            tabD2xx.Padding = new Padding(2);
+            tabD2xx.Size = new Size(1090, 361);
+            tabD2xx.TabIndex = 2;
+            tabD2xx.Text = "Raw D2XX Log";
+            tabD2xx.UseVisualStyleBackColor = true;
             // 
             // rtbD2xxLog
             // 
@@ -879,6 +905,7 @@ namespace M18BatteryInfo
             // 
             // tabDiagnostics
             // 
+            tabDiagnostics.Controls.Add(btnCollectDiagnostics);
             tabDiagnostics.Controls.Add(btnClearDiagForm);
             tabDiagnostics.Controls.Add(grpboxDiagOutput);
             tabDiagnostics.Controls.Add(lblType);
@@ -886,11 +913,13 @@ namespace M18BatteryInfo
             tabDiagnostics.Controls.Add(lblToolSerialNum);
             tabDiagnostics.Controls.Add(lblSubmitDiagDate);
             tabDiagnostics.Controls.Add(lblOneKeyID);
+            tabDiagnostics.Controls.Add(lblSubmitDiagCapacity);
             tabDiagnostics.Controls.Add(txtSubmitDiagDate);
             tabDiagnostics.Controls.Add(txtSubmitDiagSerial);
             tabDiagnostics.Controls.Add(txtSubmitDiagSticker);
             tabDiagnostics.Controls.Add(txtSubmitDiagType);
             tabDiagnostics.Controls.Add(txtOneKeyID);
+            tabDiagnostics.Controls.Add(txtSubmitDiagCapacity);
             tabDiagnostics.Controls.Add(btnSubmitDiagForm);
             tabDiagnostics.Location = new Point(4, 29);
             tabDiagnostics.Margin = new Padding(2);
@@ -901,9 +930,19 @@ namespace M18BatteryInfo
             tabDiagnostics.Text = "Submit Diagnostics";
             tabDiagnostics.UseVisualStyleBackColor = true;
             // 
+            // btnCollectDiagnostics
+            // 
+            btnCollectDiagnostics.Location = new Point(237, 173);
+            btnCollectDiagnostics.Margin = new Padding(2);
+            btnCollectDiagnostics.Name = "btnCollectDiagnostics";
+            btnCollectDiagnostics.Size = new Size(218, 27);
+            btnCollectDiagnostics.TabIndex = 26;
+            btnCollectDiagnostics.Text = "Collect Diagnostics";
+            btnCollectDiagnostics.UseVisualStyleBackColor = true;
+            // 
             // btnClearDiagForm
             // 
-            btnClearDiagForm.Location = new Point(461, 173);
+            btnClearDiagForm.Location = new Point(461, 205);
             btnClearDiagForm.Margin = new Padding(2);
             btnClearDiagForm.Name = "btnClearDiagForm";
             btnClearDiagForm.Size = new Size(122, 27);
@@ -982,6 +1021,16 @@ namespace M18BatteryInfo
             lblOneKeyID.TabIndex = 17;
             lblOneKeyID.Text = "One-Key ID";
             // 
+            // lblSubmitDiagCapacity
+            // 
+            lblSubmitDiagCapacity.AutoSize = true;
+            lblSubmitDiagCapacity.Location = new Point(13, 173);
+            lblSubmitDiagCapacity.Margin = new Padding(2, 0, 2, 0);
+            lblSubmitDiagCapacity.Name = "lblSubmitDiagCapacity";
+            lblSubmitDiagCapacity.Size = new Size(66, 20);
+            lblSubmitDiagCapacity.TabIndex = 25;
+            lblSubmitDiagCapacity.Text = "Capacity";
+            // 
             // txtSubmitDiagDate
             // 
             txtSubmitDiagDate.Location = new Point(96, 45);
@@ -1022,9 +1071,17 @@ namespace M18BatteryInfo
             txtOneKeyID.Size = new Size(121, 27);
             txtOneKeyID.TabIndex = 10;
             // 
+            // txtSubmitDiagCapacity
+            // 
+            txtSubmitDiagCapacity.Location = new Point(96, 173);
+            txtSubmitDiagCapacity.Margin = new Padding(2);
+            txtSubmitDiagCapacity.Name = "txtSubmitDiagCapacity";
+            txtSubmitDiagCapacity.Size = new Size(121, 27);
+            txtSubmitDiagCapacity.TabIndex = 24;
+            // 
             // btnSubmitDiagForm
             // 
-            btnSubmitDiagForm.Location = new Point(589, 173);
+            btnSubmitDiagForm.Location = new Point(589, 205);
             btnSubmitDiagForm.Margin = new Padding(2);
             btnSubmitDiagForm.Name = "btnSubmitDiagForm";
             btnSubmitDiagForm.Size = new Size(122, 27);
@@ -1211,18 +1268,23 @@ namespace M18BatteryInfo
         private ComboBox cmbBxChgProfile;
         private ComboBox cmbBxBaudRate;
         private Button btnRestoreTxRxState;
+        private Button btnTryCommand;
+        private Button btnDebugCommand;
         private Button btnSubmitDiagForm;
+        private Button btnCollectDiagnostics;
         private Label lblType;
         private Label lblStickerInfo;
         private Label lblToolSerialNum;
         private Label lblSubmitDiagDate;
         private Label lblOneKeyID;
+        private Label lblSubmitDiagCapacity;
         private RichTextBox rtbSubmitDiagReadOnly;
         private TextBox txtSubmitDiagDate;
         private TextBox txtSubmitDiagSerial;
         private TextBox txtSubmitDiagSticker;
         private TextBox txtSubmitDiagType;
         private TextBox txtOneKeyID;
+        private TextBox txtSubmitDiagCapacity;
         private Button btnStartSim;
         private Label lblSimProfile;
         private Label lblBaudRate;
